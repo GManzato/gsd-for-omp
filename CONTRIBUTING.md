@@ -5,7 +5,7 @@ Thank you for contributing to `gsd-for-omp`, an MIT-licensed, independently main
 ## Development environment
 
 - Node.js `>=24.0.0` is required.
-- The package is CommonJS and depends on `@opengsd/gsd-core` `^1.11.0`.
+- The package is CommonJS and depends on `@opengsd/gsd-core`; the minimum supported GSD Core version is `engines.gsd` in `package.json` (`>=1.12.0`).
 - Oh My Pi with native ExtensionAPI support is needed for host integration work and the host smoke test.
 
 Clone the repository and install its development dependency:
@@ -21,7 +21,7 @@ npm install
 Run all required local checks before opening a pull request:
 
 ```bash
-npm run lint
+npm run lint   # node --check on every .cjs file under bin/, src/, scripts/, and test/
 npm test
 ```
 
@@ -60,12 +60,16 @@ The smoke script creates and removes its own temporary `PI_CODING_AGENT_DIR`. `n
 
 Keep the English and Chinese project entry points aligned when a user-visible change affects installation or usage:
 
-- [README.md](README.md) for the English overview and command reference.
-- [README.zh-CN.md](README.zh-CN.md) for the Chinese overview and command reference.
-- The linked guides under [`docs/`](docs/) for development, testing, architecture, configuration, and getting-started details.
-- [CHANGELOG.md](CHANGELOG.md), the canonical release history, for released behavior.
+- [README.md](README.md) for the English overview and quick start.
+- [README.zh-CN.md](README.zh-CN.md) for the Chinese overview; keep it structurally identical to the English README.
+- The linked guides under [`docs/`](docs/) for development, testing, architecture, configuration, the command catalog, and getting-started details.
+- [CHANGELOG.md](CHANGELOG.md), the canonical release history. Add user-visible changes under `## [Unreleased]` in your pull request; do not create version sections or edit compare links by hand.
 
 Examples, commands, version requirements, environment-variable names, and links in documentation must match the current source and workflows.
+
+## Releases
+
+Maintainers do not publish by hand. Every commit that lands on `main` and passes CI is released by `.github/workflows/release.yml`: it bumps the patch version with `scripts/bump-version.cjs` (which also rolls the `## [Unreleased]` changelog entries into a dated version section), tags `v<version>`, creates the GitHub release, and publishes `gsd-for-omp` to npm with trusted publishing (OIDC, with provenance). See [Development](docs/DEVELOPMENT.md#release-workflow) for details.
 
 ## Security issues
 

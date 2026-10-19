@@ -10,7 +10,7 @@ Relevant implementation paths:
 - `bin/gsd-for-omp.cjs` — CommonJS installer CLI, runtime-root resolution, manifest ownership, and update checks.
 - `src/eos.cjs` — EoS capability declaration and Host-Integration SDK negotiation.
 - `src/projection.cjs` — agent/skill projection and OMP-specific path/command rewriting.
-- `src/extension.cjs` — OMP ExtensionAPI factory, command/tool registration, lifecycle events, native status, task tracking, and optional Goal Mode adapter.
+- `src/extension.cjs` and `src/extension/*.cjs` — OMP ExtensionAPI factory entry plus its modules: command/tool registration, lifecycle events, native status, task tracking, and optional Goal Mode adapter.
 - `src/locale.cjs` and `src/locales/*.cjs` — shell/EoS message locale selection and dictionaries.
 - `scripts/host-smoke.cjs` — isolated OMP integration exercise.
 - `.github/workflows/ci.yml` — Node unit/lint job and OMP host-smoke matrix.
@@ -59,7 +59,7 @@ The boundary is deliberate: this package adapts host interfaces but does not pat
 An install performs these steps:
 
 1. Resolve `@opengsd/gsd-core` and run `Eos.initialize()`.
-2. Reject a bundled GSD Core version below `1.11.0`.
+2. Reject a bundled GSD Core version below the minimum declared in `package.json` `engines.gsd` (currently `>=1.12.0`).
 3. Build `extensions/gsd-for-omp.ts`, a thin OMP module wrapper that imports `src/extension.cjs` and passes `{ runtime: "omp", runtimeRoot }`.
 4. Project every `gsd-*.md` agent and every `gsd-*` skill with a `SKILL.md` from the resolved core tree.
 5. Stage all files in a temporary transaction directory, replace prior targets only after ownership checks, and write `.gsd-for-omp-manifest.json`.
@@ -69,27 +69,30 @@ The manifest is a version-1 JSON object containing `schemaVersion`, `plugin`, pa
 
 Ownership is hash-based. Reinstall/update refuses to overwrite a missing-manifest file or a managed file whose current hash differs from the recorded hash. Uninstall removes only unchanged regular files listed in the manifest and preserves modified or directory replacements; it keeps the manifest if anything is skipped. `--force` intentionally bypasses the hash mismatch check, but it does not bypass path-safety checks or permit a symlink traversal. This protects an OMP profile that contains user edits.
 
-`update` obtains the latest release metadata, installs a newer package globally with npm, then invokes the newly installed `gsd-for-omp install` so the new process projects the new extension, agents, skills, and bundled core. If the installed version is current, it reports that no projection update is needed. The external release lookup is implemented in `githubLatestRelease()` using the repository's GitHub API/latest-release page fallback. <!-- VERIFY: GitHub is an external release service; confirm network and organization policy before relying on it. -->
+`update` asks the npm registry for the latest published `gsd-for-omp` version (`npm view gsd-for-omp version`), installs a newer package globally with `npm install --global gsd-for-omp@<version>`, then invokes the newly installed `gsd-for-omp install` so the new process projects the new extension, agents, skills, and bundled core. If the installed version is current, it reports that no projection update is needed. The registry lookup is external infrastructure and needs no credentials for the public package.
 
 ## EoS handshake and responsibility boundary
 
 `src/eos.cjs` resolves the package location of `@opengsd/gsd-core`, loads `gsd-core/bin/lib/host-integration-sdk.cjs`, builds a handshake request using the SDK protocol constant and `OMP_AXES`, and immediately handles that request. Initialization rejects any result whose profile is not `programmatic-cli` or whose negotiated protocol is not the integer `1`.
 
-The declared axes are:
+The declared contract (as printed by `gsd-for-omp descriptor --json` and defined by `OMP_AXES` in `src/eos.cjs`) is:
 
-| Axis | Value or contract |
+| Field | Value |
 |---|---|
+| Protocol | `1` |
+| Profile | `programmatic-cli` |
+| Interface points | `command`, `dispatch`, `model`, `hooks`, `state`, `artifact` |
 | `embeddingMode` | `imperative` |
 | `commandSurface` | `slash-programmatic` |
-| `dispatch` | named and nested to depth 2; background dispatch; full subagent toolkit; `isolation: none` in the EoS declaration |
-| `modelMode` | `passive` — OMP remains the model authority |
-| `hookBus` | `host` — lifecycle events come from OMP |
+| `dispatch` | named, nested to depth 2, background, full subagent toolkit, `maxConcurrency: 1`; `isolation: none` — GSD's worktree scheduler is not OMP's isolation primitive (native `task` `isolated: true` is) |
+| `effortSurface` | `none` — OMP owns model/effort routing; GSD never pushes reasoning effort into OMP dispatch |
+| `modelMode` | `passive` — OMP owns model routing |
+| `hookBus` | `host` — OMP owns lifecycle events |
 | `stateIO` | `filesystem` |
 | `transport` | `native-extension` |
-| `runtime` | `bun` (the declared host capability) |
-| `effortSurface` | `none` |
+| `runtime` | `bun` — the declared host capability |
 
-The initialized adapter bundle contains the imperative adapter (`runtime: 'omp'`), passive model adapter, host hook bus, and filesystem state adapter. The extension uses these negotiated capabilities as the compatibility contract, then invokes the public GSD CLI path resolved beneath the installed core tree.
+The initialized adapter bundle contains the imperative adapter (`runtime: 'omp'`), passive model adapter, host hook bus, and filesystem state adapter. The extension uses these negotiated capabilities as the compatibility contract, then invokes the public GSD CLI path resolved beneath the installed core tree. The plugin imports GSD's versioned Host-Integration SDK entry, negotiates the handshake at load time, and never patches or modifies `gsd-core` source.
 
 Responsibilities are intentionally separate:
 
@@ -156,7 +159,7 @@ The in-session extension uses the project planning config's `response_language` 
 
 ## Tests and host-smoke boundary
 
-Unit tests live under `test/` and exercise installer ownership/manifest safety, EoS negotiation, projection rewriting, extension helpers, and locale selection. `npm test` runs Node's built-in test runner; `npm run lint` runs `node --check` across the CommonJS sources. These are package-level checks and do not prove that a particular installed OMP release accepts the extension API.
+Unit tests live under `test/` and exercise installer ownership/manifest safety, EoS negotiation, projection rewriting, extension helpers, and locale selection. `npm test` runs Node's built-in test runner; `npm run lint` runs `scripts/lint.cjs`, which syntax-checks every `.cjs` file under `bin/`, `src/`, `scripts/`, and `test/`. These are package-level checks and do not prove that a particular installed OMP release accepts the extension API.
 
 `scripts/host-smoke.cjs` is the integration boundary. It creates a temporary `PI_CODING_AGENT_DIR`, installs the package into that isolated root, runs JSON `install`, `doctor`, and `descriptor`, starts OMP in RPC mode against the repository, verifies readiness and representative extension commands (`gsd`, `gsd-next`, `gsd-plan-phase`, `gsd-status`), checks the `gsd_invoke` exposure according to host behavior, and uninstalls the projection. It supplies a placeholder `OPENAI_API_KEY` only for host startup when no key is present; it does not perform a model request.
 
@@ -182,4 +185,4 @@ To trace a command from OMP to GSD Core, start OMP in a GSD project and use the 
 /gsd-status
 ```
 
-To inspect the exact projection implementation, begin at `bin/gsd-for-omp.cjs:desiredArtifacts()`, follow `buildProjectedArtifacts()` in `src/projection.cjs`, then follow `invokeAsync()` and the `pi.registerCommand()` calls in `src/extension.cjs`.
+To inspect the exact projection implementation, begin at `bin/gsd-for-omp.cjs:desiredArtifacts()`, follow `buildProjectedArtifacts()` in `src/projection.cjs`, then follow `invokeAsync()` in `src/extension/cli-bridge.cjs` and the `pi.registerCommand()` calls in `src/extension/commands.cjs` and `src/extension/projected-skills.cjs`.

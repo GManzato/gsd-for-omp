@@ -4,7 +4,7 @@
 
 `gsd-for-omp` is an independently maintained CommonJS host plugin that adapts `@opengsd/gsd-core` to Oh My Pi (OMP). It negotiates GSD Embeddable Orchestration System (EoS) protocol 1, projects GSD agents and skills into an OMP runtime profile, and exposes GSD commands, `gsd_invoke`, status surfaces, and native task/session integrations.
 
-This is a pure Node.js package: there is no transpilation or bundling step. The `npm pack` tarball is the distribution artifact. The package requires Node.js `>=24.0.0` and GSD Core `>=1.11.0` (dependency range `^1.11.0`).
+This is a pure Node.js package: there is no transpilation or bundling step. The `npm pack` tarball is the distribution artifact, published to the npm registry as `gsd-for-omp`. The package requires Node.js `>=24.0.0` and GSD Core at or above the `engines.gsd` minimum in `package.json` (currently `>=1.12.0`); the dependency range for `@opengsd/gsd-core` is maintained by Dependabot.
 
 ## Architecture & Data Flow
 
@@ -20,12 +20,13 @@ This is a pure Node.js package: there is no transpilation or bundling step. The 
 ## Key Directories
 
 - `bin/` — executable installer/updater and manifest ownership logic.
-- `src/` — EoS adapter, OMP extension, artifact projection, localization, and graphify worker.
+- `src/` — EoS adapter, OMP extension entry, artifact projection, localization, and graphify worker.
+- `src/extension/` — OMP extension modules (CLI bridge, commands, native launchers/prompts, status surfaces, native UI, task tracking, Goal Mode, hooks, lifecycle), wired by `src/extension.cjs`.
 - `src/locales/` — English and Simplified Chinese message dictionaries.
 - `scripts/` — release metadata synchronization and packed OMP host smoke testing.
 - `test/` — Node built-in unit and contract tests with temporary-directory fixtures.
 - `docs/` — architecture, configuration, development, testing, and getting-started guides.
-- `.github/workflows/` — Node unit CI, OMP 17/latest host smoke, upstream drift reporting, and automated release.
+- `.github/workflows/` — Node unit CI, OMP 17/latest host smoke, upstream drift reporting, and automated release with npm publishing.
 
 ## Development Commands
 
@@ -39,7 +40,7 @@ npm ci
 Run the package checks:
 
 ```bash
-npm run lint                         # node --check for all shipped .cjs modules
+npm run lint                         # node --check for every .cjs file under bin/, src/, scripts/, test/
 npm test                             # node --test across test/
 node --test test/extension.test.cjs  # focused suite while iterating
 ```
@@ -84,22 +85,25 @@ OMP_VERSION=latest GSD_FOR_OMP_BIN=gsd-for-omp node scripts/host-smoke.cjs
 - Fail safely at boundaries: return structured errors, preserve user files, clean temporary state in `finally`, and avoid silently falling back to an unrelated global executable. Installer paths must be relative to the selected root, point through regular directories, and reject symlink traversal; `--force` does not bypass path-safety checks.
 - Keep localization dictionaries in key and placeholder parity. `src/locale.cjs` uses own-property lookup, English fallback, and unchanged placeholders for missing parameters. Add matching keys to both `src/locales/en.cjs` and `src/locales/zh-CN.cjs`.
 - Use `/gsd-status` as the user-facing GSD status entry point. Native task/session mechanisms remain internal integration details; do not add a competing status command when extending the native surface.
-- Keep versioned install URLs and release metadata synchronized through `scripts/bump-version.cjs`; update both README files and the relevant guide when user-visible behavior changes. Do not hand-edit generated projected runtime artifacts as a source of truth.
+- Keep release metadata synchronized through `scripts/bump-version.cjs`; write user-visible changes under `## [Unreleased]` in `CHANGELOG.md` (the release rolls them into a version section) and update both README files and the relevant guide when user-visible behavior changes. Do not hand-edit generated projected runtime artifacts as a source of truth.
 
 ## Important Files
 
 - `package.json` — package entry point, Node/GSD engine requirements, scripts, dependency, packed-file list, and keywords.
 - `bin/gsd-for-omp.cjs` — CLI parsing, runtime-root resolution, install/update/uninstall/doctor/descriptor, manifest validation, hashes, and transactional writes.
 - `src/eos.cjs` — cached protocol-v1 EoS negotiation and adapter construction.
-- `src/extension.cjs` — OMP extension factory; command/tool registration, child-process bridge, native task tracking, status surfaces, session controls, hooks, localization, and Goal Mode.
+- `src/extension.cjs` — OMP extension factory entry; creates per-instance state, wires `src/extension/` modules, and registers with OMP.
+- `src/extension/commands.cjs`, `native-launchers.cjs`, `native-prompts.cjs` — slash commands, `gsd_invoke`, and native OMP workflow launchers/prompts.
+- `src/extension/cli-bridge.cjs` — bounded `gsd-tools` child-process bridge (`invokeAsync`).
+- `src/extension/status.cjs`, `native-ui.cjs`, `native-tasks.cjs`, `goal-mode.cjs`, `lifecycle.cjs` — status widget/footer/overlay, native task ref-counting, Goal Mode state, and `pi.on` handlers.
 - `src/projection.cjs` — deterministic agent/skill projection, path rewriting, command-name conversion, and OMP orchestration text.
 - `src/locale.cjs` and `src/locales/*.cjs` — shell/EoS locale selection and dictionaries.
 - `src/gsd-graphify-worker.cjs` — detached graphify rebuild worker with lock/status handling.
 - `scripts/host-smoke.cjs` — isolated packed-install and OMP RPC compatibility test.
-- `scripts/bump-version.cjs` — semver metadata updater for package/lock files, install docs, and `CHANGELOG.md`.
+- `scripts/bump-version.cjs` — semver updater for package/lock files that also rolls `CHANGELOG.md` `## [Unreleased]` entries into a dated version section and updates the compare links.
 - `test/extension.test.cjs` — primary extension, native OMP, status, task lifecycle, and Goal Mode regression coverage.
 - `test/installer.test.cjs`, `test/eos.test.cjs`, `test/projection.test.cjs`, `test/locale.test.cjs`, `test/release-metadata.test.cjs` — focused contract suites for installer safety, EoS, projection, localization, and release synchronization.
-- `.github/workflows/ci.yml` and `.github/workflows/release.yml` — required CI matrix and automatic patch release flow.
+- `.github/workflows/ci.yml` and `.github/workflows/release.yml` — required CI matrix and automatic patch release flow, including npm trusted publishing.
 
 ## Runtime/Tooling Preferences
 
@@ -107,8 +111,8 @@ OMP_VERSION=latest GSD_FOR_OMP_BIN=gsd-for-omp node scripts/host-smoke.cjs
 - OMP's EoS declaration advertises `runtime: "bun"`; the OMP host is installed separately for smoke tests. The extension still launches the resolved GSD Core CLI through Node child-process APIs.
 - `PI_CODING_AGENT_DIR` selects the install/runtime root; `--root` overrides it. Preserve a pre-existing `GSD_AGENTS_DIR`; otherwise use `<runtime-root>/agents`. `GSD_RUNTIME=omp` is an internal child-process bridge setting.
 - Shell locale precedence is `GSD_FOR_OMP_LOCALE` → `LC_ALL` → `LC_MESSAGES` → `LANG`; supported values normalize to `en` or `zh-CN`. Project-session language comes from `.planning/config.json` `response_language`.
-- `GITHUB_TOKEN`/`GH_TOKEN` are process-environment credentials for release lookup during `update`. `OMP_BIN`, `GSD_FOR_OMP_BIN`, `OMP_VERSION`, and `OPENAI_API_KEY` are host-smoke controls; the smoke script uses a placeholder key only to start the host and does not make a model request.
-- Work on a descriptive branch, run applicable checks, and use a pull request; CI covers Node 24 plus OMP `17.0.3` and `latest`. Every `main` commit that passes CI is released: the release workflow bumps the patch version on `main` (or keeps a manually bumped, untagged version), tags it, and publishes the GitHub release.
+- `OMP_BIN`, `GSD_FOR_OMP_BIN`, `OMP_VERSION`, and `OPENAI_API_KEY` are host-smoke controls; the smoke script uses a placeholder key only to start the host and does not make a model request. `gsd-for-omp update` queries the npm registry (`npm view gsd-for-omp version`) and needs no credentials.
+- Work on a descriptive branch, run applicable checks, and use a pull request; CI covers Node 24 plus OMP `17.0.3` and `latest`. Every `main` commit that passes CI is released: the release workflow bumps the patch version on `main` (or keeps a manually bumped, untagged version), rolls the changelog, tags it, creates the GitHub release, and publishes to npm via trusted publishing (OIDC, provenance; no `NPM_TOKEN`).
 
 ## Testing & QA
 
@@ -121,7 +125,7 @@ The unit/contract suites cover:
 - deterministic projection, path rewriting, command rewriting, idempotence, and executor result protocol;
 - locale precedence, fallback, own-property behavior, dictionary key parity, and placeholders;
 - extension registration, command routing, native renderers, status/context/task/session behavior, abort handling, resource discovery, and Goal Mode event/journal/fallback behavior;
-- package/lockfile version and README/Getting Started install URL synchronization.
+- package/lockfile version synchronization, README/Getting Started npm install documentation, changelog rollover, and the `engines.gsd` / dependency-range relationship.
 
 For extension or installer changes, run `npm run lint`, `npm test`, and the packed host smoke against both OMP `17.0.3` and `latest`. The smoke test creates a temporary runtime root, verifies JSON `install`/`doctor`/`descriptor`, launches OMP in RPC mode, checks readiness and representative commands, validates `gsd_invoke` or the OMP 17 legacy RPC surface, and uninstalls the projection. OMP 17 is expected not to expose `goal_updated`; that absence is a compatibility path, not a failure.
 

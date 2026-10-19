@@ -4,9 +4,32 @@ All notable changes to `gsd-for-omp` are recorded here in [Keep a Changelog](htt
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-19
+
+### Changed
+
+- Published to npm as `gsd-for-omp` through GitHub Actions trusted publishing (OIDC, with provenance). Install with `npm install --global gsd-for-omp`, then `gsd-for-omp install`; GitHub release tarball URLs are no longer used.
+- `gsd-for-omp update` now queries the npm registry (`npm view gsd-for-omp version`) and installs the newer version with `npm install --global gsd-for-omp@<version>` before re-projecting. It no longer calls the GitHub API, so `GITHUB_TOKEN`/`GH_TOKEN` are not used.
+- The README and docs were reorganized: the README is a short project overview, the command catalog moved to Getting Started, and the EoS contract table and model-routing explanation moved to Architecture and Configuration. The documentation also no longer claims that GSD Core's model catalog ships an empty `omp` tier map.
+- Release builds roll the `## [Unreleased]` entries of this changelog into a dated version section automatically.
+
+### Fixed
+
+- The documented and enforced GSD Core minimum is now 1.12.0, read from `engines.gsd` in `package.json`; it was incorrectly reported as 1.11.0.
+- `npm run lint` now syntax-checks every `.cjs` file under `bin/`, `src/`, `scripts/`, and `test/`, not a fixed list.
+
+## [1.0.27] - 2026-10-19
+
+### Changed
+
+- Updated the bundled `@opengsd/gsd-core` dependency to `^1.17.0` (from `^1.12.0`).
+
+## [1.0.26] - 2026-10-19
+
 ### Changed
 
 - Continued the project as `gsd-for-omp`, a fork of `tchivs/gsd-omp`. The npm package, CLI (`gsd-for-omp`), projected extension (`extensions/gsd-for-omp.ts`), ownership manifest (`.gsd-for-omp-manifest.json`), and locale override (`GSD_FOR_OMP_LOCALE`) are renamed accordingly. Remove an existing `gsd-omp` install (`gsd-omp uninstall && npm uninstall --global gsd-omp`) before installing `gsd-for-omp`: both register the same `/gsd-*` commands and agent names.
+- Every `main` commit that passes CI is now released automatically.
 
 ### Added
 
@@ -61,7 +84,10 @@ Related: [PR #53](https://github.com/tchivs/gsd-omp/pull/53), [release PR #54](h
 
 Related: [PR #51](https://github.com/tchivs/gsd-omp/pull/51), [release PR #52](https://github.com/tchivs/gsd-omp/pull/52).
 
-[Unreleased]: https://github.com/GManzato/gsd-for-omp/compare/v1.0.27...HEAD
+[Unreleased]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/GManzato/gsd-for-omp/compare/v1.0.27...v1.1.0
+[1.0.27]: https://github.com/GManzato/gsd-for-omp/compare/v1.0.26...v1.0.27
+[1.0.26]: https://github.com/GManzato/gsd-for-omp/compare/v1.0.25...v1.0.26
 [1.0.20]: https://github.com/tchivs/gsd-omp/releases/tag/v1.0.20
 [1.0.19]: https://github.com/tchivs/gsd-omp/releases/tag/v1.0.19
 [1.0.18]: https://github.com/tchivs/gsd-omp/releases/tag/v1.0.18

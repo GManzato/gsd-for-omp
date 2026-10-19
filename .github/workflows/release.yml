@@ -4,9 +4,18 @@ name: Auto-release
 #   1. CI succeeds on a push to main (or the workflow is dispatched by hand).
 #   2. If package.json carries a version that has no tag yet, that version is
 #      tagged as-is (manual minor/major bumps). Otherwise the patch version is
-#      bumped with scripts/bump-version.cjs and committed straight to main.
-#   3. The commit is tagged v<version> and a GitHub release is created. That
-#      release is the source used by `gsd-for-omp update`.
+#      bumped with scripts/bump-version.cjs (package.json, package-lock.json,
+#      and the CHANGELOG rollover) and committed straight to main.
+#   3. The commit is tagged v<version> and a GitHub release is created.
+#   4. The tagged version is published to npm as `gsd-for-omp` with
+#      `npm publish --provenance`. That registry is the source used by
+#      `gsd-for-omp update`. The step is skipped when the version is already on
+#      npm and also runs for an already tagged HEAD, so re-running the workflow
+#      after a failed publish completes the release.
+#
+# npm authentication uses trusted publishing (OIDC, `id-token: write`): the
+# package's trusted publisher on npmjs.com must point at this repository and
+# the `release.yml` workflow. No NPM_TOKEN secret is used or needed.
 #
 # The bump commit is pushed with GITHUB_TOKEN, which does not trigger another
 # workflow run, so releases never loop. If main gets a ruleset that blocks
@@ -21,6 +30,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 concurrency:
   group: auto-release
@@ -40,10 +50,11 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Set up Node.js 24
+      - name: Set up Node.js 24 and the npm registry
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24.x'
+          registry-url: https://registry.npmjs.org
 
       - name: Resolve release state
         id: state
@@ -59,6 +70,7 @@ jobs:
             echo "action=none" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          echo "current=true" >> "$GITHUB_OUTPUT"
           version="$(node -p "require('./package.json').version")"
           # `gh api` prints the error body on stdout for a 404 (no release yet),
           # so only trust its output when it exits successfully.
@@ -98,7 +110,7 @@ jobs:
             exit 1
           fi
 
-      - name: Tag and publish release
+      - name: Tag and create GitHub release
         if: steps.state.outputs.action != 'none'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -126,3 +138,27 @@ jobs:
           gh release create "${tag}" --repo "${GITHUB_REPOSITORY}" --verify-tag \
             --title "gsd-for-omp ${tag}" --notes "${notes}"
           echo "published ${tag} at ${sha}"
+
+      - name: Publish to npm
+        if: steps.state.outputs.current == 'true'
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          # Runs for every CI-tested HEAD that carries its release tag, so a
+          # re-run after a failed publish still publishes the tagged version.
+          if [ -z "$(git tag --points-at HEAD --list "v${version}")" ]; then
+            echo "HEAD is not tagged v${version}; refusing to publish"
+            exit 1
+          fi
+          # Anonymous lookup: setup-node's placeholder auth token must not be sent.
+          published="$(npm view "gsd-for-omp@${version}" version --userconfig /dev/null --registry https://registry.npmjs.org 2>/dev/null || true)"
+          if [ "${published}" = "${version}" ]; then
+            echo "gsd-for-omp@${version} is already on npm; nothing to publish"
+            exit 0
+          fi
+          # Trusted publishing (OIDC) needs npm 11.5.1 or newer.
+          npm install --global 'npm@^11.5.1'
+          npm --version
+          npm ci
+          npm publish --provenance --access public
+          echo "published gsd-for-omp@${version} to npm"

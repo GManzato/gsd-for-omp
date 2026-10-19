@@ -36,6 +36,10 @@ The path is resolved to an absolute path. A normal installed layout is:
 
 The extension derives its default agent directory as `<runtime-root>/agents`. If `GSD_AGENTS_DIR` was already present when OMP loaded the extension, that explicit value wins and is used as-is. Otherwise the extension sets `GSD_AGENTS_DIR` to the derived directory. This distinction permits operators who manage agent projections separately to point GSD Core at another directory without the plugin replacing it.
 
+### Agents directory (`GSD_AGENTS_DIR`)
+
+The extension passes `GSD_AGENTS_DIR` together with `GSD_RUNTIME=omp` to every `gsd-tools` invocation. This is the sanctioned mechanism, not a workaround: in GSD Core's agent-directory resolution, `GSD_AGENTS_DIR` is the first-priority override and applies to any runtime. GSD Core's runtime registry has no `omp` entry, so without the variable its `init.progress` / `init.new-project` agent check has no OMP-specific location to inspect and can report every projected GSD agent as missing. In short: `PI_CODING_AGENT_DIR` controls where the installer writes files; `GSD_AGENTS_DIR` controls where GSD Core looks for them.
+
 ## Environment variables
 
 ### Runtime and localization variables
@@ -51,12 +55,10 @@ The extension derives its default agent directory as `<runtime-root>/agents`. If
 
 The effective shell/EoS locale is selected in this exact order: `GSD_FOR_OMP_LOCALE`, `LC_ALL`, `LC_MESSAGES`, `LANG`. Supported dictionaries are `en` and `zh-CN`; a value such as `zh_CN.UTF-8` selects `zh-CN`, while an unknown or empty value falls back to English. This locale does not override a project's in-session language setting.
 
-### Update and smoke-test variables
+### Smoke-test variables
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `GITHUB_TOKEN` | Optional | Unset | If present, the update release lookup sends it as a Bearer token. It is not required for normal public-release lookup. |
-| `GH_TOKEN` | Optional | Unset | Fallback token name used when `GITHUB_TOKEN` is not present. |
 | `OMP_BIN` | Smoke-test only | `omp` | Executable selected by `scripts/host-smoke.cjs` to launch OMP. Not read by the installed extension. |
 | `GSD_FOR_OMP_BIN` | Smoke-test only | Run `bin/gsd-for-omp.cjs` with the current Node executable | Optional installer executable selected by `scripts/host-smoke.cjs`. |
 | `OMP_VERSION` | CI/smoke-test only | `local` in output | Labels the OMP version in the host-smoke result and selects the legacy OMP 17 fallback branch. It is not an extension configuration setting. |
@@ -104,7 +106,7 @@ With no command, the CLI behaves as `install`. `--help`/`-h` prints usage. `--ro
 | Command | Behavior | Useful result fields |
 |---|---|---|
 | `install` | Negotiate EoS, validate GSD Core, project the wrapper/agents/skills, and update the manifest transactionally. | `root`, `manifestPath`, `installed`, `coreVersion`, `protocolVersion` |
-| `update` | Resolve a newer public release, globally install it with npm, then run the newly installed CLI's `install` projection. | `updated`/`upToDate`, `from`, `to`, `current`, `latest`, `root` |
+| `update` | Ask the npm registry for the latest `gsd-for-omp` version (`npm view gsd-for-omp version`); when newer, run `npm install --global gsd-for-omp@<version>`, then run the newly installed CLI's `install` projection. No GitHub credentials are used. | `updated`/`upToDate`, `from`, `to`, `current`, `latest`, `root` |
 | `uninstall` | Remove unchanged files listed in the manifest and remove the manifest only when no files are skipped. | `root`, `removed`, `skipped`, `absent` |
 | `doctor` | Check manifest presence, missing/modified projected files, and EoS profile. | `ok`, `installed`, `version`, `coreVersion`, `protocolVersion`, `profile`, `missing`, `modified` |
 | `descriptor` | Print the negotiated plugin identity, EoS axes, interface points, and protocol/core requirement. | `id`, `protocolVersion`, `enginesGsd`, `profile`, `interfacePoints`, `axes` |
@@ -128,7 +130,30 @@ rm -rf "$root"
 gsd-for-omp install --root "$HOME/.omp/agent" --json
 ```
 
-Do not put access tokens or other secrets in the generated wrapper, projected skills, or manifest. If update authentication is needed, provide `GITHUB_TOKEN` or `GH_TOKEN` through the process environment/secret manager rather than writing it to project files. The update endpoint and latest-release fallback are external GitHub infrastructure defined by `githubLatestRelease()`; confirm network and organization policy before relying on them. <!-- VERIFY: GitHub is an external release service; confirm network and organization policy before relying on it. -->
+Do not put access tokens or other secrets in the generated wrapper, projected skills, or manifest.
+
+## Model routing
+
+OMP and GSD both have model concepts at different granularity, and the plugin deliberately does not bridge them:
+
+| | OMP | GSD |
+|---|---|---|
+| Switch surface | `/model <id> --provider <p>` | `.planning/config.json` `model_profile`, plus a per-agent routing tier |
+| Granularity | session-global | per-agent (for example planner versus executor) |
+| When resolved | any time at runtime | install / configuration time |
+
+The plugin declares `modelMode: 'passive'` in its EoS declaration: OMP is the model authority and GSD defers. Concretely:
+
+- GSD Core's `model-catalog.json` has no `omp` key in `runtimeTierDefaults` (it lists runtimes such as `claude`, `codex`, `opencode`, and `pi`). There is no built-in tier-to-model table for OMP.
+- Projected agent frontmatter contains `name`, `description`, `tools`, and `spawns` only. It never writes a `model:` field, so OMP's native task dispatch uses the current session model.
+- The extension registers no request-level (`before_provider_request`) model swap, so GSD never rewrites the model of an OMP provider request.
+
+What this means for users:
+
+- **To change the model, use OMP's `/model`.** Every GSD agent in the session runs on it.
+- `model_profile` (for example via `/gsd-settings`) has no effect under OMP, and the plugin does not apply `model_profile_overrides` to OMP requests. Do not rely on either to route models.
+
+Per-agent routing would require OMP's task-dispatch protocol to carry a per-agent `model` field, which is outside this plugin's scope; fixed model IDs in a tier map would also go stale as soon as the user runs `/model`.
 
 ## Manifest ownership and `--force`
 

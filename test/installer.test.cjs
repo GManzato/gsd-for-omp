@@ -78,15 +78,15 @@ test('removes the stale legacy CJS extension during reinstall', () => {
   }
 });
 
-test('update reports up-to-date when the local version matches the latest GitHub release', () => {
+test('update reports up-to-date when the local version matches the latest npm version', () => {
   const packageJson = require('../package.json');
   const root = temporaryRoot('gsd-for-omp-update');
   try {
     install({ root });
-    // Inject a stub instead of hitting the live GitHub API.
+    // Inject a stub instead of hitting the live npm registry.
     const result = update({
       root,
-      latestRelease: () => ({ tag_name: `v${packageJson.version}`, tarball_url: 'https://api.github.com/repos/GManzato/gsd-for-omp/tarball/x' }),
+      latestVersion: () => packageJson.version,
     });
     assert.equal(result.upToDate, true);
     assert.equal(result.current, packageJson.version);
@@ -95,7 +95,7 @@ test('update reports up-to-date when the local version matches the latest GitHub
   }
 });
 
-test('refreshes a stale runtime projection when the package matches the latest release', () => {
+test('refreshes a stale runtime projection when the package matches the latest registry version', () => {
   const packageJson = require('../package.json');
   const root = temporaryRoot('gsd-for-omp-stale-update');
   try {
@@ -107,7 +107,7 @@ test('refreshes a stale runtime projection when the package matches the latest r
 
     const result = update({
       root,
-      latestRelease: () => ({ tag_name: `v${packageJson.version}` }),
+      latestVersion: () => packageJson.version,
     });
 
     assert.equal(result.updated, true);
@@ -128,9 +128,9 @@ test('rejects a missing --root value instead of consuming another option', () =>
   assert.throws(() => parseArgs(['install', '--root', '--force']), /--root requires a path/);
 });
 
-test('rejects malformed release metadata before attempting an update', () => {
+test('rejects a malformed registry version before attempting an update', () => {
   assert.throws(
-    () => update({ latestRelease: () => ({ tag_name: 'latest' }) }),
+    () => update({ latestVersion: () => 'latest' }),
     /could not check for updates/,
   );
 });
