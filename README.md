@@ -42,7 +42,7 @@ This project is third-party software. It is not endorsed, reviewed, or maintaine
 Install the released plugin globally, then project its managed extension, agents, and skills into OMP:
 
 ```bash
-npm install --global https://github.com/GManzato/gsd-for-omp/archive/refs/tags/v1.0.25.tar.gz
+npm install --global https://github.com/GManzato/gsd-for-omp/archive/refs/tags/v1.0.26.tar.gz
 gsd-for-omp install
 ```
 
@@ -196,7 +196,7 @@ If the update check fails (offline, GitHub unreachable), fall back to the manual
 
 ```bash
 gsd-for-omp uninstall
-npm install --global https://github.com/GManzato/gsd-for-omp/archive/refs/tags/v1.0.25.tar.gz
+npm install --global https://github.com/GManzato/gsd-for-omp/archive/refs/tags/v1.0.26.tar.gz
 gsd-for-omp install
 ```
 
