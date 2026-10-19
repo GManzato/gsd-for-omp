@@ -27,7 +27,7 @@ Run the complete unit/contract suite:
 npm test
 ```
 
-Run syntax checks (the same command used by CI and `prepack`):
+Run syntax checks (the same command used by CI and `prepack`; `scripts/lint.cjs` runs `node --check` on every `.cjs` file under `bin/`, `src/`, `scripts/`, and `test/`):
 
 ```bash
 npm run lint
@@ -43,13 +43,13 @@ node --test test/locale.test.cjs
 node --test test/extension.test.cjs
 ```
 
-`test/release-metadata.test.cjs` is included by `npm test` and checks release/version metadata consistency.
+`test/release-metadata.test.cjs` is included by `npm test`. It checks that the `package.json` and `package-lock.json` versions agree, that the READMEs and Getting Started document the npm install command (and no GitHub tag tarball URL), that `CHANGELOG.md` has a section for the package version with a matching `[Unreleased]` compare link, that `scripts/bump-version.cjs` rolls `## [Unreleased]` into a dated version section, and that the bundled `@opengsd/gsd-core` dependency range cannot resolve below `engines.gsd`.
 
 ## What the unit tests cover
 
 ### Installer ownership and rollback
 
-`test/installer.test.cjs` verifies that installation creates the extension, projected agents, skills, and ownership manifest; `doctor` sees a healthy projection; and uninstall removes exactly the owned artifacts. It also covers stale legacy extension cleanup, refusal to overwrite modified or unmanaged files, `--force`-relevant ownership behavior, malformed release metadata, unsafe manifest paths, directory placeholders, symlinked parents, stale projection refresh, and transaction rollback/preservation behavior.
+`test/installer.test.cjs` verifies that installation creates the extension, projected agents, skills, and ownership manifest; `doctor` sees a healthy projection; and uninstall removes exactly the owned artifacts. It also covers stale legacy extension cleanup, refusal to overwrite modified or unmanaged files, `--force`-relevant ownership behavior, the update check against the npm registry (stubbed in tests) including malformed registry versions, unsafe manifest paths, directory placeholders, symlinked parents, stale projection refresh, and transaction rollback/preservation behavior.
 
 The expected healthy path is protocol version `1`, more than 50 projected artifacts, `doctor.ok === true`, empty `missing`/`modified`, and an uninstall with no skipped paths.
 
@@ -75,8 +75,6 @@ The expected healthy path is protocol version `1`, more than 50 projected artifa
 - stopping GSD reports the active objective rather than falsely claiming the session is idle; and
 - rejecting `goal_updated` registration (the OMP 17 behavior) does not prevent the extension from loading its other events and tools.
 
-`test/release-metadata.test.cjs` ensures `package-lock.json` and both README release install/upgrade URLs use the package version.
-
 ## Host smoke test
 
 The host test must use a packed global plugin and an OMP host. The same sequence is used by CI:
@@ -98,7 +96,7 @@ GSD_FOR_OMP_BIN=gsd-for-omp OMP_VERSION=latest node scripts/host-smoke.cjs
 
 The script creates an isolated temporary runtime root, so the smoke test does not modify the developer's normal `~/.omp/agent`. It checks:
 
-1. Installer JSON reports protocol `1`, a GSD Core version satisfying the declared `^1.11.0` range, and more than 50 installed artifacts.
+1. Installer JSON reports protocol `1`, a GSD Core version satisfying the `engines.gsd` minimum in `package.json`, and more than 50 installed artifacts.
 2. `doctor --json` reports `ok: true`, profile `programmatic-cli`, and empty `missing`/`modified` arrays.
 3. `descriptor --json` reports protocol `1`, profile `programmatic-cli`, native-extension transport, and Bun runtime.
 4. OMP reaches `ready` without an `extension_error` and publishes `/gsd`, `/gsd-next`, `/gsd-plan-phase`, and `/gsd-status` from the extension.
@@ -133,7 +131,7 @@ The host matrix is `fail-fast: false`, so pinned and latest compatibility result
 - **Projection failure:** inspect the focused projection suite and the generated runtime paths. The installer must keep the manifest inside the selected runtime root and must not follow symlinked parents.
 - **OMP 17 host failure:** verify the pinned host was installed as `@oh-my-pi/pi-coding-agent@17.0.3`. Goal Mode is not expected there; absence of `goal_updated` must not be reported as an extension error.
 - **Latest host failure:** inspect the RPC frames and `available_commands_update` in the smoke output. The script explicitly retries with `--tools read,write,gsd_invoke` for newer hosts whose default active tool set omits `gsd_invoke`. If both attempts fail, compare the host contract with the assertions in `scripts/host-smoke.cjs`.
-- **Network/release failure:** `gsd-for-omp update` depends on GitHub release metadata. For a local smoke run, install the packed tarball as shown above; this separates package/host failures from release lookup failures.
+- **Network/registry failure:** `gsd-for-omp update` asks the npm registry (`npm view gsd-for-omp version`) for the latest version. For a local smoke run, install the packed tarball as shown above; this separates package/host failures from registry lookup failures.
 
 Do not treat the OMP 17 Goal Mode fallback as a failed test: the required result is a loadable extension with the normal GSD command and status surfaces, without the optional `goal_updated` integration.
 
@@ -142,4 +140,4 @@ Do not treat the OMP 17 Goal Mode fallback as a failed test: the required result
 - [Development](DEVELOPMENT.md) — packaging and local host validation.
 - [Configuration](CONFIGURATION.md) — runtime roots, environment variables, and installer flags.
 - [Getting Started](GETTING-STARTED.md) — end-user install and verification.
-- [Project README](../README.md) — public commands and compatibility contract.
+- [Project README](../README.md) — overview and quick start.

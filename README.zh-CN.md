@@ -1,174 +1,30 @@
 # GSD for Oh My Pi
 
 [![CI](https://img.shields.io/github/actions/workflow/status/GManzato/gsd-for-omp/ci.yml?branch=main&logo=githubactions&logoColor=white&label=CI)](https://github.com/GManzato/gsd-for-omp/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/GManzato/gsd-for-omp?logo=github&label=release)](https://github.com/GManzato/gsd-for-omp/releases)
+[![npm](https://img.shields.io/npm/v/gsd-for-omp?logo=npm&label=npm)](https://www.npmjs.com/package/gsd-for-omp)
 [![License: MIT](https://img.shields.io/github/license/GManzato/gsd-for-omp?color=blue)](./LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%E2%89%A524-339933?logo=node.js&logoColor=white)](https://nodejs.org)
-[![GSD Core](https://img.shields.io/badge/gsd--core-%E2%89%A51.11.0-0066cc)](https://github.com/open-gsd/gsd-core)
-[![OMP EoS](https://img.shields.io/badge/OMP-EoS%20v1-6c31c4)](#eos-契约)
-[![Last Commit](https://img.shields.io/github/last-commit/GManzato/gsd-for-omp?logo=git&logoColor=white)](https://github.com/GManzato/gsd-for-omp/commits)
-[![Stars](https://img.shields.io/github/stars/GManzato/gsd-for-omp?style=social)](https://github.com/GManzato/gsd-for-omp/stargazers)
-[![Contributors](https://img.shields.io/github/contributors/GManzato/gsd-for-omp?color=orange&logo=github)](https://github.com/GManzato/gsd-for-omp/graphs/contributors)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](https://github.com/GManzato/gsd-for-omp/pulls)
 
 [English](./README.md) · **简体中文**
 
-`gsd-for-omp` 是一个独立维护的 Oh My Pi 宿主插件，面向 [GSD 嵌入式编排系统](https://github.com/open-gsd/gsd-core/blob/next/docs/explanation/embeddable-orchestration-system.md)。它通过公共 Host-Integration SDK 的协议版本 1，将 OMP 原生的扩展、命令、事件、任务与文件系统接口绑定到 GSD。在提供 Goal Mode 的主机上，它会把可选的目标状态同步到 GSD 状态界面，但不会接管 OMP 的 GoalRuntime。
+`gsd-for-omp` 是面向 [GSD 嵌入式编排系统](https://github.com/open-gsd/gsd-core/blob/next/docs/explanation/embeddable-orchestration-system.md)的 Oh My Pi（OMP）宿主插件。它通过公共 Host-Integration SDK 的协议版本 1，将 OMP 原生的扩展、命令、事件、任务与文件系统接口绑定到 GSD。在提供 Goal Mode 的主机上，它会把可选的目标状态同步到 GSD 状态界面，但不会接管 OMP 的 GoalRuntime。
 
-本项目为第三方软件，未由 OpenGSD 背书、审查或维护。
-
-`gsd-for-omp` 派生自 [tchivs/gsd-omp](https://github.com/tchivs/gsd-omp)，现作为独立项目继续维护。
-
-## 文档
-
-| 文档 | 用途 |
-|---|---|
-| [入门指南](docs/GETTING-STARTED.md) | 安装、校验、使用、升级与故障排查 |
-| [架构说明](docs/ARCHITECTURE.md) | 运行时边界、数据流、投影和 OMP 集成 |
-| [配置参考](docs/CONFIGURATION.md) | 环境变量、CLI 参数、清单所有权与 Goal Mode 协调 |
-| [开发指南](docs/DEVELOPMENT.md) | 本地开发、打包、host smoke 与发布流程 |
-| [测试指南](docs/TESTING.md) | 单元测试和 OMP 宿主验证说明 |
-| [贡献指南](./CONTRIBUTING.md) | 贡献、Pull Request 与文档规范 |
-| [CHANGELOG](./CHANGELOG.md) | 按版本整理的发布历史 |
+本项目为第三方软件，未由 OpenGSD 背书、审查或维护。它派生自 [tchivs/gsd-omp](https://github.com/tchivs/gsd-omp)，现作为独立项目继续维护。
 
 ## 环境要求
 
 - Node.js 24 或更高版本
 - 启用原生 ExtensionAPI 的 Oh My Pi
-- GSD Core 1.11.0 或更高版本；作为本包依赖自动安装
+- GSD Core 1.12.0 或更高版本，作为本包的依赖自动安装
 
 ## 安装
 
-全局安装已发布的插件，随后将其托管的扩展、agents 与 skills 投影到 OMP：
-
 ```bash
-npm install --global https://github.com/GManzato/gsd-for-omp/archive/refs/tags/v1.0.27.tar.gz
+npm install --global gsd-for-omp
 gsd-for-omp install
 ```
 
-支持 `PI_CODING_AGENT_DIR` 环境变量。未设置时，文件安装到 `~/.omp/agent`。
-
-### agents 目录
-
-会话内扩展会导出 `GSD_AGENTS_DIR`（默认指向 `<runtimeRoot>/agents`，即 `~/.omp/agent/agents`），并在每次调用 `gsd-tools` 时连同 `GSD_RUNTIME=omp` 一起传入。
-
-这是受支持的正规机制，不是 workaround：`GSD_AGENTS_DIR` 是 gsd-core `getAgentsDir` 契约中优先级最高的覆盖项——在任何运行时查找之前被优先检查，适用于所有运行时。OMP 的配置根目录不是 gsd-core 已注册的运行时（注册表中只有 `pi`，没有 `omp`），因此没有该变量时，`init.progress` / `init.new-project` 的 agents 检查会回退到 `~/.claude/agents`，并把所有 GSD agents 报告为缺失。
-
-仅当环境中尚未定义该变量时插件才会写入它。如果你自行管理 agents 投影，可在启动 OMP 前设置 `GSD_AGENTS_DIR`，插件会原样使用你的路径。（`PI_CODING_AGENT_DIR` 控制安装器把文件写到哪里；`GSD_AGENTS_DIR` 控制 gsd-core 到哪里查找 agents。）
-
-安装完成后重启 OMP，即可使用：
-
-```text
-/gsd-next
-/gsd-progress
-/gsd-plan-phase 1
-/gsd <gsd-tools family> <subcommand> [args]
-```
-
-插件还会注册 `gsd_invoke` 工具，用于以结构化方式访问公共 `gsd-tools` CLI。
-
-## 命令
-
-插件注册了 39 个核心斜杠命令与 `gsd_invoke` 工具。OMP 还会接收安装运行时投影的其他 `gsd-*` skill 命令。下表按项目生命周期分组，说明取自命令注册元数据。
-
-
-### 入口与状态
-
-| 命令 | 说明 |
-|---|---|
-| `/gsd-next` | 显示或准备下一个本地化的 GSD 动作 |
-| `/gsd-progress` | 显示 GSD 进度,或在门控的下一步工作流中推进 |
-| `/gsd-status` | 显示本地化的 GSD 项目摘要、上下文预算和原生任务状态 |
-| `/gsd <family> <subcommand> [args]` | 直接调用公共 `gsd-tools` CLI |
-
-### 项目生命周期
-
-| 命令 | 说明 |
-|---|---|
-| `/gsd-new-project` | 通过原生 OMP 提问初始化一个 GSD 项目 |
-| `/gsd-new-milestone` | 通过原生 OMP 提问启动一个 GSD 里程碑 |
-| `/gsd-resume-work` | 通过原生 OMP 控制恢复一个 GSD 项目 |
-| `/gsd-pause-work` | 在阶段中途暂停时生成交接上下文 |
-| `/gsd-complete-milestone` | 归档已完成的里程碑并准备下一个版本 |
-
-### 阶段规划
-
-| 命令 | 说明 |
-|---|---|
-| `/gsd-spec-phase <n>` | 厘清阶段交付内容;生成 SPEC.md |
-| `/gsd-discuss-phase <n>` | 通过自适应提问收集阶段上下文 |
-| `/gsd-plan-phase <n>` | 生成 PLAN.md 并带验证回路 |
-| `/gsd-mvp-phase <n>` | 将阶段规划为垂直 MVP 切片 |
-| `/gsd-ai-integration-phase <n>` | 为 AI 阶段生成 AI-SPEC.md 设计契约 |
-| `/gsd-ui-phase <n>` | 为前端阶段生成 UI-SPEC.md 设计契约 |
-
-### 执行与验证
-
-| 命令 | 说明 |
-|---|---|
-| `/gsd-execute-phase <n>` | 通过 OMP 原生任务波次执行阶段 |
-| `/gsd-verify-work <n>` | 通过对话式 UAT 验证已完成的阶段 |
-| `/gsd-code-review <n>` | 通过原生 OMP 任务分派审查阶段 |
-| `/gsd-add-tests <n>` | 通过原生 OMP 批准生成阶段测试 |
-| `/gsd-validate-phase <n>` | 审计阶段的 Nyquist 验证覆盖 |
-| `/gsd-secure-phase <n>` | 验证阶段的威胁缓解措施 |
-
-### 质量审计
-
-| 命令 | 说明 |
-|---|---|
-| `/gsd-ui-review` | 对前端代码进行回顾性六维视觉审计 |
-| `/gsd-eval-review` | 审计已执行 AI 阶段的评估覆盖 |
-| `/gsd-audit-uat` | 跨阶段审计所有未完成的 UAT 与验证项 |
-| `/gsd-audit-milestone` | 对照原始意图审计里程碑完成度 |
-| `/gsd-debug` | 通过原生 OMP 提问与任务运行 GSD 调试 |
-| `/gsd-audit-fix` | 自主审计到修复流水线 —— 发现、分类、修复、测试、提交 |
-
-### 发布与 Git
-
-| 命令 | 说明 |
-|---|---|
-| `/gsd-ship <n>` | 发布已验证的工作;创建 PR 并准备合并 |
-| `/gsd-update` | 通过原生预检与批准门更新 GSD |
-| `/gsd-undo` | 通过原生依赖与批准门回退 GSD 提交 |
-| `/gsd-pr-branch` | 通过原生预览与批准门构建过滤后的 PR 分支 |
-
-### 快捷路径与管理
-
-| 命令 | 说明 |
-|---|---|
-| `/gsd-quick` | 以 GSD 保障运行快捷任务(原子提交、状态追踪) |
-| `/gsd-fast` | 内联执行琐碎任务 —— 无子代理、无规划开销 |
-| `/gsd-import` | 在写入前以冲突检测引入外部计划 |
-| `/gsd-autonomous` | 自主运行所有剩余阶段 —— 讨论→规划→执行 |
-| `/gsd-phase` | 对 ROADMAP.md 中的阶段做增删改查 |
-| `/gsd-settings` | 配置工作流开关与模型档案 |
-| `/gsd-workspace` | 管理隔离的工作区环境 |
-| `/gsd-workstreams` | 管理并行的工作流 |
-
-`/gsd` 背后完整的 `gsd-tools` CLI 接口,可运行 `/gsd <family> help`,或以 `subcommand: "help"` 调用 `gsd_invoke` 工具。
-
-### OMP 原生控制
-
-`/gsd-status` 是唯一面向用户的 GSD 状态入口，也接受以下原生控制参数：
-
-| 命令 | 作用 |
-|---|---|
-| `/gsd-status --compact` | 确认后打开 OMP 原生上下文压缩流程 |
-| `/gsd-status --stop` | 确认后请求 OMP 中止当前 agent turn |
-| `/gsd-status --branch ENTRY_ID` | 从指定会话条目创建分支 |
-| `/gsd-status --tree ENTRY_ID [--summarize]` | 导航 Session 树，可选压缩被放弃的路径 |
-| `/gsd-status --switch SESSION_PATH` | 切换到指定的 OMP session 文件 |
-| `/gsd-status --reload` | 重新加载当前 OMP session/runtime 状态 |
-
-快捷键 `Ctrl+Shift+G` 会打开实时原生状态 overlay。在 overlay 中按 `e` 可使用 OMP 多行编辑器编辑待处理的 GSD 动作；按 `Esc` 关闭。OMP flag `--gsd-status` 会在 session 启动时打开相同 overlay。
-
-原生任务执行事件、上下文使用量、自动压缩、自动重试和异步任务结算都会同步到 widget 与 footer。原生任务跟踪保持内部机制，用户状态入口统一为 `/gsd-status`。
-
-当 projected skill 具有稳定参数契约时，插件会提供 OMP 参数补全和 session 命名；底层 projected `SKILL.md` 仍是所有校验、批准、产物和提交门的权威来源。
-当 OMP 提供 Goal Mode 的 `goal_updated` 事件时（较新的 OMP 主机支持），`gsd-for-omp` 会在 `/gsd-status`、footer、widget 和实时 overlay 中同步目标、状态与 token 预算；它会在 session 启动或重新加载时从 OMP session journal 恢复最新状态。活动目标运行期间，GSD 续接提示会保持待处理，避免两个续接循环互相竞争；请先运行 `/goal pause` 或 `/goal drop`，再运行 `/gsd-next`。没有 `goal_updated` 的主机（包括 OMP 17）仍可使用其余 GSD 集成能力，只跳过这一项可选界面。
-
-## 校验
+`gsd-for-omp install` 会把托管的扩展、agents 与 skills 投影到 OMP（`~/.omp/agent`，设置了 `PI_CODING_AGENT_DIR` 时则为该目录）。随后重启 OMP，并校验安装：
 
 ```bash
 gsd-for-omp doctor
@@ -176,140 +32,53 @@ gsd-for-omp doctor
 
 健康的安装会报告 `"ok": true`、EoS profile 为 `programmatic-cli`、协议版本为 `1`。
 
-查看完整的 EoS 声明：
+## 使用
 
-```bash
-gsd-for-omp descriptor
+在 OMP 会话中、项目目录下：
+
+```text
+/gsd-next                           # 显示或准备下一个 GSD 动作
+/gsd-status                         # 项目摘要、上下文预算、原生任务状态
+/gsd-progress                       # 显示进度，或推进带门控的下一步
+/gsd-plan-phase 1                   # 规划一个阶段
+/gsd-execute-phase 1                # 通过 OMP 原生任务波次执行一个阶段
+/gsd <family> <subcommand> [args]   # 直接调用公共 gsd-tools CLI
 ```
 
-## 升级
+`gsd_invoke` 工具让 agent 以结构化方式访问同一个 `gsd-tools` CLI。所有 `/gsd-*` 命令都会出现在 OMP 的命令列表中；完整目录见[入门指南](docs/GETTING-STARTED.md#commands)。
+
+## OMP 集成
+
+- **状态 overlay** —— `Ctrl+Shift+G` 打开实时 GSD 状态 overlay（也可在启动时用 `--gsd-status` flag 打开）；widget 与 footer 显示同样的状态。
+- **原生控制** —— `/gsd-status` 接受 `--compact`、`--stop`、`--branch`、`--tree`、`--switch`、`--reload`，对应 OMP 的原生会话控制。
+- **Goal Mode** —— 当主机提供 `goal_updated` 事件时，目标、状态与 token 预算会同步到 `/gsd-status`；运行 `/gsd-next` 前请先暂停或放弃目标（`/goal pause`、`/goal drop`）。没有该事件的主机（如 OMP 17）仍可使用其余全部功能。
+- **模型** —— 模型由 OMP 掌管。请使用 OMP 的 `/model` 切换；GSD 的 `model_profile` 设置在 OMP 下不起作用。详见[配置参考](docs/CONFIGURATION.md#model-routing)。
+
+## 更新与卸载
 
 ```bash
-gsd-for-omp update
-```
-
-检查 GitHub 上的最新 release，通过 npm 全局 tarball 安装新版本，并重新投影受管的 extension / agents / skills，一步完成。之后重启 OMP。
-
-> **GSD 核心版本**：`gsd-for-omp update` 会一起升级捆绑的 gsd-core（它是本包的依赖）。但 OMP 的 `~/.omp/agent/gsd-core/` 是 OMP 自带的引擎树（当前 1.7.0-rc.6），不在本插件管理范围内——插件从自身 `node_modules` 解析 gsd-core。若需要 OMP 侧引擎与插件一致，需用 OMP 自己的更新路径（如 `omp update`）。
-
-如果更新检查失败（离线、GitHub 不可达），回退到手动步骤：
-
-```bash
-gsd-for-omp uninstall
-npm install --global https://github.com/GManzato/gsd-for-omp/archive/refs/tags/v1.0.27.tar.gz
-gsd-for-omp install
-```
-
-安装器会拒绝覆盖未托管或已被本地修改的投影文件。仅当确实要替换之前由 GSD 托管的 OMP 文件时，才使用 `--force`：
-
-```bash
-gsd-for-omp install --force
-```
-
-## 卸载
-
-先移除托管的 OMP 产物，再卸载拥有安装器的本包：
-
-```bash
-gsd-for-omp uninstall
+gsd-for-omp update      # 从 npm 安装最新版本并重新投影；之后重启 OMP
+gsd-for-omp uninstall   # 移除托管的 OMP 产物
 npm uninstall --global gsd-for-omp
 ```
 
-被修改的托管文件会被保留并报告。仅当确实要删除它们时，才传入 `--force`。
+安装器会拒绝覆盖未托管或已被本地修改的文件；使用 `--force` 之前请阅读[配置参考](docs/CONFIGURATION.md#manifest-ownership-and---force)。Shell 输出通过 `GSD_FOR_OMP_LOCALE`、`LC_ALL`、`LC_MESSAGES`、`LANG` 本地化（英文与简体中文），详见[配置参考](docs/CONFIGURATION.md#environment-variables)。
 
-## 模型路由
+## 文档
 
-OMP 与 GSD 都有模型概念,但二者粒度不同,本插件刻意不做桥接:
-
-| | OMP | GSD |
-|---|---|---|
-| 切换入口 | `/model <id> --provider <p>` | `.planning/config.json` 的 `model_profile` + 每 agent 的 `tier` |
-| 粒度 | **session 全局** | **per-agent**(`gsd-planner` → heavy、`gsd-executor` → standard、…) |
-| 解析时机 | 运行时随时 | install / 配置时 |
-
-插件声明 `modelMode: 'passive'`,即 **OMP 是模型权威,GSD 退让**。这是有意为之,不是缺失:
-
-- `model-catalog.json` 里 `runtimeTierDefaults['omp'] = {}`(空),因此 `resolveTierEntry({runtime:'omp',…})` 返回 `null`,request 级覆盖路径 fail-open。
-- 投影出的 agent frontmatter **不写** `model:` 字段,让 OMP 原生任务派发使用当前 session 模型。
-- `buildBeforeProviderRequestHandler`(request 级模型替换)只对遗留的 `pi` runtime 注册,不对 OMP 注册。
-
-### 在 OMP 下到底什么决定模型
-
-- **换模型:** 用 OMP 的 `/model`。这是唯一真正有效的杠杆 —— session 里所有 GSD agent 都跑在它上面。
-- **换 GSD profile:** `/gsd-settings`。这会影响 GSD 内部的 agent → tier 映射,但**在 OMP 下无可观察效果**,因为 omp tier map 是空的。
-- `.planning/config.json` 里的 `model_profile_overrides.omp` 在 OMP 下是**静默空操作**。设了也不会改变行为,不要依赖它。
-
-### 为什么不做更深的桥接
-
-真正的 per-agent 路由(planner 用强模型、executor 用快模型)需要 OMP 的 task-dispatch 协议携带 per-agent `model` 字段,这超出本插件职责。而用固定 model ID 填充 omp tier map,用户一跑 `/model` 就立刻陈旧。`passive` 是诚实的契约。
-
-## 语言环境
-
-宿主 CLI（`gsd-for-omp install|uninstall|doctor|descriptor`）与 EoS 引导阶段的消息遵循 POSIX 环境变量，按以下顺序解析：
-
-1. `GSD_FOR_OMP_LOCALE` —— 显式覆盖，优先级最高
-2. `LC_ALL`
-3. `LC_MESSAGES`
-4. `LANG`
-
-任何小写形式以 `zh` 开头的取值（如 `zh_CN.UTF-8`、`zh_TW`）会选中简体中文；其余取值回落到英文。未知键名回落到英文，未提供的占位符会原样保留。
-
-```bash
-# 无论 shell 语言环境如何，强制输出中文
-GSD_FOR_OMP_LOCALE=zh_CN.UTF-8 gsd-for-omp doctor
-```
-
-会话内的 OMP 扩展（`/gsd-*` 命令、状态组件、续接提示）走另一条本地化路径，通过项目 `.planning/config.json` 中的 `response_language` 字段控制。当扩展首次加载一个未设置该字段的 GSD 项目时，会弹出一个一次性的 `简体中文 / English` 选择器。
-
-支持的语言：`en`（默认）、`zh-CN`。
-
-## EoS 契约
-
-| 字段 | 取值 |
+| 文档 | 用途 |
 |---|---|
-| Protocol | `1` |
-| Profile | `programmatic-cli` |
-| Interface points | `command`, `dispatch`, `model`, `hooks`, `state`, `artifact` |
-| `embeddingMode` | `imperative` |
-| `commandSurface` | `slash-programmatic` |
-| `dispatch` | 命名分发、嵌套至深度 2、后台、完整子代理工具集；`isolation: none` —— GSD 的 worktree 调度器不是 OMP 的隔离原语（原生 `task` 的 `isolated: true` 才是） |
-| `effortSurface` | `none` —— 由 OMP 拥有模型/effort 路由，GSD 不把推理 effort 推入 OMP 派发 |
-| `modelMode` | `passive` —— 由 OMP 拥有模型路由 |
-| `hookBus` | `host` —— 由 OMP 拥有生命周期事件 |
-| `stateIO` | `filesystem` |
-| `transport` | `native-extension` |
-| `runtime` | `bun` |
+| [入门指南](docs/GETTING-STARTED.md) | 安装、校验、使用、升级与故障排查；命令目录 |
+| [架构说明](docs/ARCHITECTURE.md) | 运行时边界、EoS 契约、数据流、投影和 OMP 集成 |
+| [配置参考](docs/CONFIGURATION.md) | 环境变量、CLI 参数、模型路由、清单所有权与 Goal Mode 协调 |
+| [开发指南](docs/DEVELOPMENT.md) | 本地开发、打包、host smoke 与发布流程 |
+| [测试指南](docs/TESTING.md) | 单元测试和 OMP 宿主验证说明 |
+| [贡献指南](./CONTRIBUTING.md) | 贡献、Pull Request 与文档规范 |
+| [CHANGELOG](./CHANGELOG.md) | 按版本整理的发布历史 |
 
-插件在加载时导入 GSD 的带版本号的 Host-Integration SDK 入口，完成 EoS 握手协商，再通过本包公共的 `gsd-tools` 可执行文件调用 GSD。它不会 patch 或修改 `gsd-core` 源码。
+## 致谢
 
-## 托管文件
-
-安装器会写入：
-
-- `extensions/gsd-for-omp.ts`
-- 投影后的 `agents/gsd-*.md`
-- 投影后的 `skills/gsd-*/SKILL.md`
-- `.gsd-for-omp-manifest.json`（含所有权哈希）
-
-清单文件让升级与卸载具备所有权感知能力。安装后被修改的文件在未加 `--force` 时不会被覆盖或删除。
-
-## 开发
-
-```bash
-npm install
-npm run lint
-npm test
-```
-
-可在不触碰用户 OMP profile 的前提下，执行一次本地隔离安装：
-
-```bash
-PI_CODING_AGENT_DIR="$(mktemp -d)" node bin/gsd-for-omp.cjs install
-```
-
-## 版权归属
-
-OMP 扩展源自 `open-gsd/gsd-core` 中采用 MIT 许可的 pi 参考宿主，并被改造为本独立维护的 EoS 插件。上游 Open GSD 的版权声明保留在 `LICENSE` 中。
+OMP 扩展最初基于 `open-gsd/gsd-core` 中以 MIT 许可发布的 pi 参考宿主，后被改造为这个独立维护的 EoS 插件。上游 Open GSD 的版权声明保留在 `LICENSE` 中。
 
 ## 许可证
 

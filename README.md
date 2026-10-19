@@ -1,174 +1,30 @@
 # GSD for Oh My Pi
+
 [![CI](https://img.shields.io/github/actions/workflow/status/GManzato/gsd-for-omp/ci.yml?branch=main&logo=githubactions&logoColor=white&label=CI)](https://github.com/GManzato/gsd-for-omp/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/GManzato/gsd-for-omp?logo=github&label=release)](https://github.com/GManzato/gsd-for-omp/releases)
+[![npm](https://img.shields.io/npm/v/gsd-for-omp?logo=npm&label=npm)](https://www.npmjs.com/package/gsd-for-omp)
 [![License: MIT](https://img.shields.io/github/license/GManzato/gsd-for-omp?color=blue)](./LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%E2%89%A524-339933?logo=node.js&logoColor=white)](https://nodejs.org)
-[![GSD Core](https://img.shields.io/badge/gsd--core-%E2%89%A51.11.0-0066cc)](https://github.com/open-gsd/gsd-core)
-[![OMP EoS](https://img.shields.io/badge/OMP-EoS%20v1-6c31c4)](#eos-contract)
-[![Last Commit](https://img.shields.io/github/last-commit/GManzato/gsd-for-omp?logo=git&logoColor=white)](https://github.com/GManzato/gsd-for-omp/commits)
-[![Stars](https://img.shields.io/github/stars/GManzato/gsd-for-omp?style=social)](https://github.com/GManzato/gsd-for-omp/stargazers)
-[![Contributors](https://img.shields.io/github/contributors/GManzato/gsd-for-omp?color=orange&logo=github)](https://github.com/GManzato/gsd-for-omp/graphs/contributors)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](https://github.com/GManzato/gsd-for-omp/pulls)
 
 **English** · [简体中文](./README.zh-CN.md)
 
-`gsd-for-omp` is an independently maintained Oh My Pi host plugin for the [GSD Embeddable Orchestration System](https://github.com/open-gsd/gsd-core/blob/next/docs/explanation/embeddable-orchestration-system.md). It binds OMP's native extension, command, event, task, and filesystem surfaces to GSD through protocol version 1 of the public Host-Integration SDK. On hosts that expose Goal Mode, it mirrors optional goal state in the GSD status surfaces without taking ownership of OMP's GoalRuntime.
+`gsd-for-omp` is an Oh My Pi (OMP) host plugin for the [GSD Embeddable Orchestration System](https://github.com/open-gsd/gsd-core/blob/next/docs/explanation/embeddable-orchestration-system.md). It binds OMP's native extension, command, event, task, and filesystem surfaces to GSD through protocol version 1 of the public Host-Integration SDK. On hosts that expose Goal Mode, it mirrors optional goal state in the GSD status surfaces without taking ownership of OMP's GoalRuntime.
 
-This project is third-party software. It is not endorsed, reviewed, or maintained by OpenGSD.
-
-`gsd-for-omp` is a fork of [tchivs/gsd-omp](https://github.com/tchivs/gsd-omp), continued as an independent project.
-
-
-## Documentation
-
-| Guide | Purpose |
-|---|---|
-| [Getting Started](docs/GETTING-STARTED.md) | Install, verify, use, upgrade, and troubleshoot the plugin |
-| [Architecture](docs/ARCHITECTURE.md) | Runtime boundaries, data flow, projection, and OMP integration |
-| [Configuration](docs/CONFIGURATION.md) | Environment variables, CLI flags, manifest ownership, and Goal Mode coordination |
-| [Development](docs/DEVELOPMENT.md) | Local development, packaging, host smoke tests, and release workflow |
-| [Testing](docs/TESTING.md) | Unit-test and OMP host-validation guidance |
-| [Contributing](./CONTRIBUTING.md) | Contribution, pull-request, and documentation guidelines |
-| [CHANGELOG](./CHANGELOG.md) | Versioned release history |
+This project is third-party software. It is not endorsed, reviewed, or maintained by OpenGSD. It is a fork of [tchivs/gsd-omp](https://github.com/tchivs/gsd-omp), continued as an independent project.
 
 ## Requirements
 
 - Node.js 24 or newer
 - Oh My Pi with native ExtensionAPI support
-- GSD Core 1.11.0 or newer; installed automatically as this package's dependency
+- GSD Core 1.12.0 or newer, installed automatically as a dependency of this package
 
 ## Install
 
-Install the released plugin globally, then project its managed extension, agents, and skills into OMP:
-
 ```bash
-npm install --global https://github.com/GManzato/gsd-for-omp/archive/refs/tags/v1.0.27.tar.gz
+npm install --global gsd-for-omp
 gsd-for-omp install
 ```
 
-`PI_CODING_AGENT_DIR` is honored. Without it, files are installed under `~/.omp/agent`.
-
-### Agents directory
-
-The in-session extension exports `GSD_AGENTS_DIR` (defaulting to `<runtimeRoot>/agents`, i.e. `~/.omp/agent/agents`) and passes it to every `gsd-tools` invocation together with `GSD_RUNTIME=omp`.
-
-This is the sanctioned mechanism, not a shim: `GSD_AGENTS_DIR` is the highest-priority override in gsd-core's `getAgentsDir` contract — it is consulted before any runtime lookup, for any runtime. OMP's config root is not a registered gsd-core runtime (the registry ships `pi`, not `omp`), so without this variable the `init.progress` / `init.new-project` agent check would fall back to `~/.claude/agents` and report every GSD agent as missing.
-
-The variable is only set when the environment does not already define it. If you manage the agents projection yourself, set `GSD_AGENTS_DIR` before starting OMP and the plugin uses your location as-is. (`PI_CODING_AGENT_DIR` controls where the installer writes files; `GSD_AGENTS_DIR` controls where gsd-core looks for them.)
-
-Restart OMP after installation, then use:
-
-```text
-/gsd-next
-/gsd-progress
-/gsd-plan-phase 1
-/gsd <gsd-tools family> <subcommand> [args]
-```
-
-The plugin also registers the `gsd_invoke` tool for structured access to the public `gsd-tools` CLI.
-
-## Commands
-
-The plugin registers 39 core slash commands and the `gsd_invoke` tool. OMP also receives any additional `gsd-*` skill commands projected by the installed runtime. Commands are grouped by project lifecycle; descriptions are taken from the registered command metadata.
-
-
-### Entry & status
-
-| Command | Description |
-|---|---|
-| `/gsd-next` | Show or prepare the next localized GSD action |
-| `/gsd-progress` | Show GSD progress or advance through its gated next-step workflow |
-| `/gsd-status` | Show the localized project summary, context budget, and native job state |
-| `/gsd <family> <subcommand> [args]` | Invoke the public `gsd-tools` CLI directly |
-
-### Project lifecycle
-
-| Command | Description |
-|---|---|
-| `/gsd-new-project` | Initialize a GSD project with native OMP questions |
-| `/gsd-new-milestone` | Start a GSD milestone with native OMP questions |
-| `/gsd-resume-work` | Restore a GSD project through native OMP controls |
-| `/gsd-pause-work` | Create context handoff when pausing work mid-phase |
-| `/gsd-complete-milestone` | Archive completed milestone and prepare for next version |
-
-### Phase planning
-
-| Command | Description |
-|---|---|
-| `/gsd-spec-phase <n>` | Clarify WHAT a phase delivers; produces SPEC.md |
-| `/gsd-discuss-phase <n>` | Gather phase context through adaptive questioning |
-| `/gsd-plan-phase <n>` | Create PLAN.md with verification loop |
-| `/gsd-mvp-phase <n>` | Plan a phase as a vertical MVP slice |
-| `/gsd-ai-integration-phase <n>` | Generate AI-SPEC.md design contract for AI phases |
-| `/gsd-ui-phase <n>` | Generate UI-SPEC.md design contract for frontend phases |
-
-### Execution & verification
-
-| Command | Description |
-|---|---|
-| `/gsd-execute-phase <n>` | Execute a phase through OMP native task waves |
-| `/gsd-verify-work <n>` | Verify a completed phase through conversational UAT |
-| `/gsd-code-review <n>` | Review a phase through native OMP task dispatch |
-| `/gsd-add-tests <n>` | Generate phase tests through native OMP approvals |
-| `/gsd-validate-phase <n>` | Audit Nyquist validation coverage for a phase |
-| `/gsd-secure-phase <n>` | Verify phase threat mitigations |
-
-### Quality audits
-
-| Command | Description |
-|---|---|
-| `/gsd-ui-review` | Retroactive 6-pillar visual audit of frontend code |
-| `/gsd-eval-review` | Audit an executed AI phase's evaluation coverage |
-| `/gsd-audit-uat` | Cross-phase audit of outstanding UAT and verification items |
-| `/gsd-audit-milestone` | Audit milestone completion against original intent |
-| `/gsd-debug` | Run GSD debugging through native OMP questions and tasks |
-| `/gsd-audit-fix` | Autonomous audit-to-fix pipeline — find, classify, fix, test, commit |
-
-### Ship & git
-
-| Command | Description |
-|---|---|
-| `/gsd-ship <n>` | Ship verified work; create PR and prepare for merge |
-| `/gsd-update` | Update GSD through native preflight and approval gates |
-| `/gsd-undo` | Revert GSD commits through native dependency and approval gates |
-| `/gsd-pr-branch` | Build a filtered PR branch through native preview and approval gates |
-
-### Fast paths & admin
-
-| Command | Description |
-|---|---|
-| `/gsd-quick` | Run a quick task with GSD guarantees (atomic commits, state tracking) |
-| `/gsd-fast` | Run a trivial task inline — no subagents, no planning overhead |
-| `/gsd-import` | Ingest external plans with conflict detection |
-| `/gsd-autonomous` | Run all remaining phases autonomously — discuss→plan→execute |
-| `/gsd-phase` | CRUD for phases in ROADMAP.md — add, insert, remove, edit |
-| `/gsd-settings` | Configure workflow toggles and model profile |
-| `/gsd-workspace` | Manage isolated workspace environments |
-| `/gsd-workstreams` | Manage parallel workstreams |
-
-For the full `gsd-tools` CLI surface behind `/gsd`, run `/gsd <family> help` or call the `gsd_invoke` tool with `subcommand: "help"`.
-
-### Native OMP controls
-
-`/gsd-status` is the single user-facing GSD status entry. It accepts these optional native controls:
-
-| Command | Effect |
-|---|---|
-| `/gsd-status --compact` | Open OMP's context compaction flow after confirmation |
-| `/gsd-status --stop` | Ask OMP to abort the current agent turn after confirmation |
-| `/gsd-status --branch ENTRY_ID` | Branch the current session from an entry |
-| `/gsd-status --tree ENTRY_ID [--summarize]` | Navigate the session tree, optionally summarizing the abandoned path |
-| `/gsd-status --switch SESSION_PATH` | Switch to a known OMP session file |
-| `/gsd-status --reload` | Reload the current OMP session/runtime state |
-
-The `Ctrl+Shift+G` shortcut opens a live native status overlay. Press `e` inside the overlay to edit the pending GSD action in OMP's multiline editor; press `Esc` to close it. The `--gsd-status` OMP flag opens the same overlay when the session starts.
-
-Native task execution events, context usage, automatic compaction, retry state, and detached job settlement feed the widget and footer. Native task tracking stays internal; `/gsd-status` is the status surface.
-
-Projected skills receive OMP argument completion and session labels where their workflow has a stable argument contract. The underlying projected `SKILL.md` remains authoritative for every validation, approval, artifact, and commit gate.
-When OMP exposes Goal Mode (`goal_updated`, available in newer OMP hosts), `gsd-for-omp` mirrors the objective, status, and token budget in `/gsd-status`, the footer, the widget, and the live overlay. It restores the latest state from the OMP session journal at session start or reload. While an active Goal Mode objective is running, GSD continuation prompts remain pending so the two continuation loops do not compete; run `/goal pause` or `/goal drop` before `/gsd-next`. Hosts without `goal_updated` (including OMP 17) keep the rest of the GSD integration available without this optional surface.
-
-## Verify
+`gsd-for-omp install` projects the managed extension, agents, and skills into OMP (`~/.omp/agent`, or `PI_CODING_AGENT_DIR` when set). Restart OMP afterwards, then check the install:
 
 ```bash
 gsd-for-omp doctor
@@ -176,135 +32,49 @@ gsd-for-omp doctor
 
 A healthy install reports `"ok": true`, EoS profile `programmatic-cli`, and protocol version `1`.
 
-To inspect the exact EoS declaration:
+## Usage
 
-```bash
-gsd-for-omp descriptor
+In an OMP session, inside a project:
+
+```text
+/gsd-next                           # show or prepare the next GSD action
+/gsd-status                         # project summary, context budget, native job state
+/gsd-progress                       # show progress or advance the gated next step
+/gsd-plan-phase 1                   # plan a phase
+/gsd-execute-phase 1                # execute a phase through OMP native task waves
+/gsd <family> <subcommand> [args]   # call the public gsd-tools CLI directly
 ```
 
-## Upgrade
+The `gsd_invoke` tool gives agents structured access to the same `gsd-tools` CLI. Every `/gsd-*` command appears in OMP's command list; the full catalog is in [Getting Started](docs/GETTING-STARTED.md#commands).
+
+## OMP integration
+
+- **Status overlay** — `Ctrl+Shift+G` opens a live GSD status overlay (also available at startup with the `--gsd-status` flag); a widget and footer show the same state.
+- **Native controls** — `/gsd-status` accepts `--compact`, `--stop`, `--branch`, `--tree`, `--switch`, and `--reload` for OMP's native session controls.
+- **Goal Mode** — when the host emits `goal_updated`, the objective, status, and token budget are mirrored in `/gsd-status`; pause or drop the goal (`/goal pause`, `/goal drop`) before `/gsd-next`. Hosts without it, such as OMP 17, keep everything else.
+- **Models** — OMP owns the model. Switch with OMP's `/model`; the GSD `model_profile` setting has no effect under OMP. See [Configuration](docs/CONFIGURATION.md#model-routing).
+
+## Update and uninstall
 
 ```bash
-gsd-for-omp update
-```
-
-Checks GitHub for the latest release, installs it (npm global tarball install), and re-projects the managed extension, agents, and skills in one step. Restart OMP afterwards.
-
-> **GSD core version**: `gsd-for-omp update` upgrades the bundled gsd-core (it is this package's dependency). OMP's own `~/.omp/agent/gsd-core/` engine tree (currently 1.7.0-rc.6) is outside this plugin's management — the plugin resolves gsd-core from its own `node_modules`. To align the OMP-side engine with the plugin, use OMP's own update path (e.g. `omp update`).
-
-If the update check fails (offline, GitHub unreachable), fall back to the manual steps:
-
-```bash
-gsd-for-omp uninstall
-npm install --global https://github.com/GManzato/gsd-for-omp/archive/refs/tags/v1.0.27.tar.gz
-gsd-for-omp install
-```
-
-The installer refuses to overwrite unmanaged or locally modified projections. Use `--force` only when intentionally replacing earlier GSD-owned OMP files:
-
-```bash
-gsd-for-omp install --force
-```
-
-## Uninstall
-
-Remove managed OMP artifacts before removing the package that owns the installer:
-
-```bash
-gsd-for-omp uninstall
+gsd-for-omp update      # installs the newest version from npm and re-projects; restart OMP afterwards
+gsd-for-omp uninstall   # remove managed OMP artifacts
 npm uninstall --global gsd-for-omp
 ```
-Modified managed files are preserved and reported. Pass `--force` only when they should be deleted.
 
-## Model routing
+The installer refuses to overwrite unmanaged or locally modified files; see [Configuration](docs/CONFIGURATION.md#manifest-ownership-and---force) before using `--force`. Shell output is localized through `GSD_FOR_OMP_LOCALE`, `LC_ALL`, `LC_MESSAGES`, and `LANG` (English and Simplified Chinese); see [Configuration](docs/CONFIGURATION.md#environment-variables).
 
-OMP and GSD both have model concepts, but they operate at different granularity and the plugin deliberately does not bridge them:
+## Documentation
 
-| | OMP | GSD |
-|---|---|---|
-| Switch surface | `/model <id> --provider <p>` | `.planning/config.json` `model_profile` + per-agent `tier` |
-| Granularity | **session-global** | **per-agent** (`gsd-planner` → heavy, `gsd-executor` → standard, …) |
-| When resolved | any time at runtime | install / config time |
-
-The plugin declares `modelMode: 'passive'`, meaning **OMP is the model authority and GSD defers**. This is intentional, not a gap:
-
-- `model-catalog.json` ships `runtimeTierDefaults['omp'] = {}` (empty), so `resolveTierEntry({runtime:'omp',…})` returns `null` and the request-level override path fails open.
-- Projected agent frontmatter does **not** write a `model:` field, letting OMP's native task dispatch use the current session model.
-- `buildBeforeProviderRequestHandler` (request-level model swap) is registered only for the legacy `pi` runtime, not OMP.
-
-### What actually controls the model in OMP
-
-- **To change the model:** use OMP's `/model`. This is the only effective lever — every GSD agent in the session runs on it.
-- **To change the GSD profile:** `/gsd-settings`. This affects GSD's internal agent → tier mapping, but **has no observable effect under OMP** because the omp tier map is empty.
-- `model_profile_overrides.omp` in `.planning/config.json` is a **silent no-op** under OMP. Setting it will not change behavior; do not rely on it.
-
-### Why no deeper bridging
-
-True per-agent routing (planner on a strong model, executor on a fast one) would require OMP's task-dispatch protocol to carry a per-agent `model` field, which is outside this plugin's scope. Filling the omp tier map with fixed IDs would also go stale the moment the user runs `/model`. `passive` is the honest contract.
-
-## Locale
-
-The host CLI (`gsd-for-omp install|uninstall|doctor|descriptor`) and EoS bootstrap messages localize through the POSIX environment, resolved in this order:
-
-1. `GSD_FOR_OMP_LOCALE` — explicit override, takes precedence
-2. `LC_ALL`
-3. `LC_MESSAGES`
-4. `LANG`
-
-Any value whose lowercased form starts with `zh` (e.g. `zh_CN.UTF-8`, `zh_TW`) selects Simplified Chinese; everything else falls back to English. Unknown keys fall back to English, and unknown placeholders are left intact.
-
-```bash
-# force Chinese output regardless of shell locale
-GSD_FOR_OMP_LOCALE=zh_CN.UTF-8 gsd-for-omp doctor
-```
-
-Messages from the in-session OMP extension (`/gsd-*` commands, status widgets, continuations) are localized separately through the project's `response_language` field in `.planning/config.json`. The first time the extension loads in a GSD project without that field set, it offers a one-time `简体中文 / English` picker.
-
-Supported locales: `en` (default), `zh-CN`.
-
-## EoS contract
-
-| Field | Value |
+| Guide | Purpose |
 |---|---|
-| Protocol | `1` |
-| Profile | `programmatic-cli` |
-| Interface points | `command`, `dispatch`, `model`, `hooks`, `state`, `artifact` |
-| `embeddingMode` | `imperative` |
-| `commandSurface` | `slash-programmatic` |
-| `dispatch` | named, nested to depth 2, background, full subagent toolkit; `isolation: none` — GSD's worktree scheduler is not OMP's isolation primitive (native `task` `isolated: true` is) |
-| `effortSurface` | `none` — OMP owns model/effort routing; GSD never pushes reasoning effort into OMP dispatch |
-| `modelMode` | `passive` — OMP owns model routing |
-| `hookBus` | `host` — OMP owns lifecycle events |
-| `stateIO` | `filesystem` |
-| `transport` | `native-extension` |
-| `runtime` | `bun` |
-
-The plugin imports GSD's versioned Host-Integration SDK entry, negotiates the EoS handshake at load time, and invokes GSD through the package's public `gsd-tools` executable. It does not patch or modify `gsd-core` source.
-
-## Managed files
-
-The installer writes:
-
-- `extensions/gsd-for-omp.ts`
-- projected `agents/gsd-*.md`
-- projected `skills/gsd-*/SKILL.md`
-- `.gsd-for-omp-manifest.json` with ownership hashes
-
-The manifest makes upgrades and uninstalls ownership-aware. Files changed after installation are not overwritten or removed without `--force`.
-
-## Development
-
-```bash
-npm install
-npm run lint
-npm test
-```
-
-A local isolated install can be exercised without touching the user's OMP profile:
-
-```bash
-PI_CODING_AGENT_DIR="$(mktemp -d)" node bin/gsd-for-omp.cjs install
-```
+| [Getting Started](docs/GETTING-STARTED.md) | Install, verify, use, upgrade, and troubleshoot; command catalog |
+| [Architecture](docs/ARCHITECTURE.md) | Runtime boundaries, EoS contract, data flow, projection, and OMP integration |
+| [Configuration](docs/CONFIGURATION.md) | Environment variables, CLI flags, model routing, manifest ownership, and Goal Mode coordination |
+| [Development](docs/DEVELOPMENT.md) | Local development, packaging, host smoke tests, and release workflow |
+| [Testing](docs/TESTING.md) | Unit-test and OMP host-validation guidance |
+| [Contributing](./CONTRIBUTING.md) | Contribution, pull-request, and documentation guidelines |
+| [CHANGELOG](./CHANGELOG.md) | Versioned release history |
 
 ## Attribution
 
