@@ -11,13 +11,13 @@ const { buildProjectedArtifacts } = require('../src/projection.cjs');
 const packageJson = require('../package.json');
 const { t } = require('../src/locale.cjs');
 
-const MANIFEST_NAME = '.gsd-omp-manifest.json';
+const MANIFEST_NAME = '.gsd-for-omp-manifest.json';
 const LEGACY_EXTENSION_PATHS = Object.freeze([
   path.join('extensions', 'gsd-omp.cjs'),
   path.join('extensions', 'gsd-omp.cjs.bak-mutable-default'),
 ]);
 const LEGACY_EXTENSION_MARKER = 'GSD extension for Pi-compatible hosts';
-const GITHUB_REPO = 'tchivs/gsd-omp';
+const GITHUB_REPO = 'GManzato/gsd-for-omp';
 const RELEASE_API = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
 const RELEASE_PAGE = `https://github.com/${GITHUB_REPO}/releases/latest`;
 
@@ -33,7 +33,7 @@ function normalizedReleaseVersion(value) {
 
 function manifestError(root, message) {
   const error = new Error(t('cli.error.invalidManifest', { path: manifestPath(root), message }));
-  error.code = 'ERR_GSD_OMP_MANIFEST';
+  error.code = 'ERR_GSD_FOR_OMP_MANIFEST';
   return error;
 }
 
@@ -154,7 +154,7 @@ function githubLatestRelease() {
   const script = `
 const apiUrl = ${JSON.stringify(RELEASE_API)};
 const latestPageUrl = ${JSON.stringify(RELEASE_PAGE)};
-const headers = { 'User-Agent': 'gsd-omp', Accept: 'application/vnd.github+json' };
+const headers = { 'User-Agent': 'gsd-for-omp', Accept: 'application/vnd.github+json' };
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 if (token) headers.Authorization = \`Bearer \${token}\`;
 
@@ -170,7 +170,7 @@ async function resolve() {
 
   const pageResponse = await fetch(latestPageUrl, {
     redirect: 'manual',
-    headers: { 'User-Agent': 'gsd-omp' },
+    headers: { 'User-Agent': 'gsd-for-omp' },
   });
   const location = pageResponse.headers.get('location') || '';
   const match = location.match(/\\/releases\\/tag\\/(v\\d+\\.\\d+\\.\\d+)$/);
@@ -219,8 +219,8 @@ function update({ root: rootOverride, force = false, latestRelease, json = false
   const prefix = globalPrefix();
   if (!prefix) throw new Error(t('cli.error.updateProjectionFailed'));
   const cli = process.platform === 'win32'
-    ? path.join(prefix, 'gsd-omp.cmd')
-    : path.join(prefix, 'bin', 'gsd-omp');
+    ? path.join(prefix, 'gsd-for-omp.cmd')
+    : path.join(prefix, 'bin', 'gsd-for-omp');
   const installArgs = ['install'];
   if (rootOverride) installArgs.push('--root', rootOverride);
   if (force) installArgs.push('--force');
@@ -259,7 +259,7 @@ function readManifest(root) {
     return validateManifest(root, JSON.parse(fs.readFileSync(location, 'utf8')));
   } catch (error) {
     if (error.code === 'ENOENT') return null;
-    if (error.code === 'ERR_GSD_OMP_MANIFEST') throw error;
+    if (error.code === 'ERR_GSD_FOR_OMP_MANIFEST') throw error;
     throw new Error(t('cli.error.cannotReadManifest', { path: location, message: error.message }));
   }
 }
@@ -281,7 +281,7 @@ function writeStagedFile(target, content) {
 
 function installTransaction(root, artifacts, staleFiles, manifestContent) {
   fs.mkdirSync(root, { recursive: true });
-  const transactionRoot = fs.mkdtempSync(path.join(root, '.gsd-omp-install-'));
+  const transactionRoot = fs.mkdtempSync(path.join(root, '.gsd-for-omp-install-'));
   const stagedRoot = path.join(transactionRoot, 'staged');
   const backupRoot = path.join(transactionRoot, 'backup');
   const records = [];
@@ -359,7 +359,7 @@ function extensionWrapper(root) {
 function desiredArtifacts(root, coreRoot) {
   return [
     {
-      relativePath: path.join('extensions', 'gsd-omp.ts'),
+      relativePath: path.join('extensions', 'gsd-for-omp.ts'),
       content: extensionWrapper(root),
     },
     ...buildProjectedArtifacts({ coreRoot, runtimeRoot: root }),
@@ -478,7 +478,7 @@ function doctor({ root: rootOverride } = {}) {
 function descriptor() {
   const eos = Eos.initialize();
   return {
-    id: 'gsd-omp',
+    id: 'gsd-for-omp',
     protocolVersion: eos.negotiation.protocolVersion,
     enginesGsd: packageJson.engines.gsd,
     profile: eos.profile,
@@ -514,7 +514,7 @@ if (require.main === module) {
   try {
     process.exitCode = main();
   } catch (error) {
-    process.stderr.write(`gsd-omp: ${error.message}\n`);
+    process.stderr.write(`gsd-for-omp: ${error.message}\n`);
     process.exitCode = 1;
   }
 }

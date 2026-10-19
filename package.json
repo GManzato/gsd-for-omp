@@ -1,12 +1,15 @@
 {
-  "name": "gsd-omp",
+  "name": "gsd-for-omp",
   "version": "1.0.25",
   "description": "Oh My Pi host plugin for the GSD Embeddable Orchestration System — extension bindings, slash-command surface, Host-Integration SDK adapter, and optional Goal Mode status integration for AI coding agents",
   "license": "MIT",
-  "author": "tchivs",
+  "author": "Gilles Manzato",
+  "contributors": [
+    "tchivs (original gsd-omp author)"
+  ],
   "type": "commonjs",
   "bin": {
-    "gsd-omp": "bin/gsd-omp.cjs"
+    "gsd-for-omp": "bin/gsd-for-omp.cjs"
   },
   "files": [
     "bin",
@@ -19,7 +22,7 @@
     "docs"
   ],
   "scripts": {
-    "lint": "node --check bin/gsd-omp.cjs && node --check src/eos.cjs && node --check src/extension.cjs && node --check src/gsd-graphify-worker.cjs && node --check src/locale.cjs && node --check src/locales/en.cjs && node --check src/locales/zh-CN.cjs && node --check src/projection.cjs",
+    "lint": "node --check bin/gsd-for-omp.cjs && node --check src/eos.cjs && node --check src/extension.cjs && node --check src/gsd-graphify-worker.cjs && node --check src/locale.cjs && node --check src/locales/en.cjs && node --check src/locales/zh-CN.cjs && node --check src/projection.cjs",
     "test": "node --test",
     "prepack": "npm run lint && npm test"
   },
@@ -32,11 +35,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tchivs/gsd-omp.git"
+    "url": "git+https://github.com/GManzato/gsd-for-omp.git"
   },
-  "homepage": "https://github.com/tchivs/gsd-omp#readme",
+  "homepage": "https://github.com/GManzato/gsd-for-omp#readme",
   "bugs": {
-    "url": "https://github.com/tchivs/gsd-omp/issues"
+    "url": "https://github.com/GManzato/gsd-for-omp/issues"
   },
   "keywords": [
     "gsd",

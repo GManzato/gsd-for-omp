@@ -1,7 +1,7 @@
 <!-- generated-by: gsd-doc-writer -->
 # Getting Started
 
-`gsd-omp` is an Oh My Pi (OMP) host plugin that exposes the GSD orchestration commands, projected agents and skills, and the native OMP status surface in an OMP session.
+`gsd-for-omp` is an Oh My Pi (OMP) host plugin that exposes the GSD orchestration commands, projected agents and skills, and the native OMP status surface in an OMP session.
 
 For the architecture and runtime boundaries, see [Architecture](ARCHITECTURE.md). For the complete environment and flag reference, see [Configuration](CONFIGURATION.md).
 
@@ -9,7 +9,7 @@ For the architecture and runtime boundaries, see [Architecture](ARCHITECTURE.md)
 
 - Node.js `>=24.0.0`.
 - Oh My Pi with native `ExtensionAPI` support. The repository's CI exercises OMP `17.0.3` and `latest`.
-- GSD Core `>=1.11.0`. The compatible `@opengsd/gsd-core` dependency (`^1.11.0`) is installed with `gsd-omp`.
+- GSD Core `>=1.11.0`. The compatible `@opengsd/gsd-core` dependency (`^1.11.0`) is installed with `gsd-for-omp`.
 - A project directory in which GSD can create its `.planning/` state when you start a GSD workflow.
 
 ## Installation
@@ -17,7 +17,7 @@ For the architecture and runtime boundaries, see [Architecture](ARCHITECTURE.md)
 Install the latest released plugin globally:
 
 ```bash
-npm install --global https://github.com/tchivs/gsd-omp/archive/refs/tags/v1.0.25.tar.gz
+npm install --global https://github.com/GManzato/gsd-for-omp/archive/refs/tags/v1.0.25.tar.gz
 ```
 
 If OMP is not already installed, install a host version covered by the compatibility checks (the pinned fallback is OMP `17.0.3`):
@@ -30,10 +30,10 @@ Set `PI_CODING_AGENT_DIR` before projection when you want a non-default OMP runt
 
 ```bash
 export PI_CODING_AGENT_DIR="$HOME/.omp/agent"
-gsd-omp install
+gsd-for-omp install
 ```
 
-`gsd-omp install` writes the managed extension, projected GSD agents and skills, and `.gsd-omp-manifest.json` below that runtime root. If `GSD_AGENTS_DIR` is already set, the in-session extension preserves that value; otherwise it exposes `<runtime-root>/agents` to GSD Core so agent discovery uses the projected files.
+`gsd-for-omp install` writes the managed extension, projected GSD agents and skills, and `.gsd-for-omp-manifest.json` below that runtime root. If `GSD_AGENTS_DIR` is already set, the in-session extension preserves that value; otherwise it exposes `<runtime-root>/agents` to GSD Core so agent discovery uses the projected files.
 
 Restart OMP after installation. OMP loads the extension at session startup, so an existing session does not automatically acquire the new commands.
 
@@ -43,8 +43,8 @@ Restart OMP after installation. OMP loads the extension at session startup, so a
 2. Check the integration from the shell:
 
    ```bash
-   gsd-omp doctor
-   gsd-omp descriptor
+   gsd-for-omp doctor
+   gsd-for-omp descriptor
    ```
 
 3. In OMP, inspect the project and choose the next action:
@@ -64,7 +64,7 @@ Goal Mode is optional host capability, not a prerequisite:
 
 - Hosts that emit OMP's `goal_updated` event (newer hosts, including a compatible `latest`) are mirrored in `/gsd-status`, the footer, widget, and overlay. The latest state can be restored from the OMP session journal.
 - OMP `17.0.3` has no `goal_updated` event. The extension catches that registration failure and keeps commands, tools, status, projection, and the rest of the GSD integration active.
-- While a Goal Mode objective is active, `gsd-omp` leaves the pending GSD next action in place and does not start a competing continuation loop. Run `/goal pause` or `/goal drop`, then run `/gsd-next`.
+- While a Goal Mode objective is active, `gsd-for-omp` leaves the pending GSD next action in place and does not start a competing continuation loop. Run `/goal pause` or `/goal drop`, then run `/gsd-next`.
 
 The plugin does not take over OMP's GoalRuntime; it only consumes the optional event and session-journal state when the host provides them.
 
@@ -73,15 +73,15 @@ The plugin does not take over OMP's GoalRuntime; it only consumes the optional e
 The update command checks the latest GitHub release, globally installs its tarball, and re-projects the managed files:
 
 ```bash
-gsd-omp update
+gsd-for-omp update
 ```
 
 Restart OMP after a successful update. If the release check cannot reach GitHub, use the explicit release URL and re-project:
 
 ```bash
-gsd-omp uninstall
-npm install --global https://github.com/tchivs/gsd-omp/archive/refs/tags/v1.0.25.tar.gz
-gsd-omp install
+gsd-for-omp uninstall
+npm install --global https://github.com/GManzato/gsd-for-omp/archive/refs/tags/v1.0.25.tar.gz
+gsd-for-omp install
 ```
 
 The update upgrades the plugin's bundled GSD Core dependency. It does not update an OMP-managed engine tree; use OMP's own update path for the host itself.
@@ -91,15 +91,15 @@ The update upgrades the plugin's bundled GSD Core dependency. It does not update
 Remove managed projections before removing the global installer:
 
 ```bash
-gsd-omp uninstall
-npm uninstall --global gsd-omp
+gsd-for-omp uninstall
+npm uninstall --global gsd-for-omp
 ```
 
 The installer is ownership-aware. It preserves files that were changed after installation and reports them as skipped. To intentionally replace or remove a modified GSD-owned projection, pass `--force`:
 
 ```bash
-gsd-omp install --force
-gsd-omp uninstall --force
+gsd-for-omp install --force
+gsd-for-omp uninstall --force
 ```
 
 Use `--force` only when the local changes are disposable.
@@ -111,10 +111,10 @@ Use `--force` only when the local changes are disposable.
 Run the JSON form to see the exact runtime root and paths:
 
 ```bash
-gsd-omp doctor --json
+gsd-for-omp doctor --json
 ```
 
-Confirm that `PI_CODING_AGENT_DIR` is the same value used during installation, then restart OMP. A modified managed file is intentionally not overwritten; inspect or preserve the local edit, or deliberately re-project with `gsd-omp install --force`.
+Confirm that `PI_CODING_AGENT_DIR` is the same value used during installation, then restart OMP. A modified managed file is intentionally not overwritten; inspect or preserve the local edit, or deliberately re-project with `gsd-for-omp install --force`.
 
 ### GSD reports that agents are missing
 
@@ -137,11 +137,11 @@ This is expected on OMP `17.0.3`: Goal Mode is optional and depends on `goal_upd
 
 ### `update` cannot check a release
 
-The update command uses the GitHub release metadata. If that check fails, follow the manual uninstall/install sequence above, then run `gsd-omp doctor` and restart OMP.
+The update command uses the GitHub release metadata. If that check fails, follow the manual uninstall/install sequence above, then run `gsd-for-omp doctor` and restart OMP.
 
 ### The extension is not visible after installing
 
-OMP reads extensions at startup. Restart OMP, confirm `gsd-omp install` targeted the intended `PI_CODING_AGENT_DIR`, and use `gsd-omp descriptor` to confirm the local CLI's protocol declaration.
+OMP reads extensions at startup. Restart OMP, confirm `gsd-for-omp install` targeted the intended `PI_CODING_AGENT_DIR`, and use `gsd-for-omp descriptor` to confirm the local CLI's protocol declaration.
 
 ## Next steps
 

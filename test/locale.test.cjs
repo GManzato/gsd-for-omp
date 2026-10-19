@@ -24,9 +24,9 @@ test('normalize maps any zh* variant to zh-CN and everything else to en', () => 
   assert.equal(locale.normalize(undefined), 'en');
 });
 
-test('detectFromEnv follows GSD_OMP_LOCALE -> LC_ALL -> LC_MESSAGES -> LANG', () => {
-  assert.equal(locale.detectFromEnv({ GSD_OMP_LOCALE: 'zh_CN.UTF-8', LANG: 'en_US.UTF-8' }), 'zh-CN');
-  assert.equal(locale.detectFromEnv({ GSD_OMP_LOCALE: 'en', LANG: 'zh_CN.UTF-8' }), 'en');
+test('detectFromEnv follows GSD_FOR_OMP_LOCALE -> LC_ALL -> LC_MESSAGES -> LANG', () => {
+  assert.equal(locale.detectFromEnv({ GSD_FOR_OMP_LOCALE: 'zh_CN.UTF-8', LANG: 'en_US.UTF-8' }), 'zh-CN');
+  assert.equal(locale.detectFromEnv({ GSD_FOR_OMP_LOCALE: 'en', LANG: 'zh_CN.UTF-8' }), 'en');
   assert.equal(locale.detectFromEnv({ LC_ALL: 'zh_CN.UTF-8', LANG: 'en_US.UTF-8' }), 'zh-CN');
   assert.equal(locale.detectFromEnv({ LC_MESSAGES: 'zh_CN.UTF-8', LANG: 'en_US.UTF-8' }), 'zh-CN');
   assert.equal(locale.detectFromEnv({ LANG: 'en_US.UTF-8' }), 'en');
@@ -54,7 +54,7 @@ test('setLocale switches the active dictionary', () => {
     locale.t('cli.error.unknownArgument', { arg: '--banana' }),
     '未知参数：--banana',
   );
-  assert.equal(locale.t('cli.usage'), '用法：gsd-omp [install|update|uninstall|doctor|descriptor] [--root <路径>] [--force] [--json]');
+  assert.equal(locale.t('cli.usage'), '用法：gsd-for-omp [install|update|uninstall|doctor|descriptor] [--root <路径>] [--force] [--json]');
   locale.setLocale('en');
   assert.equal(locale.getLocale(), 'en');
 });

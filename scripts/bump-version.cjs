@@ -1,6 +1,6 @@
 'use strict';
 
-// Bump gsd-omp's version across package.json, package-lock.json, install docs,
+// Bump gsd-for-omp's version across package.json, package-lock.json, install docs,
 // README URLs, and the changelog compare link. Idempotent: running with the
 // current version is a no-op.
 //
@@ -53,7 +53,7 @@ const changelogPath = path.join(root, 'CHANGELOG.md');
 if (fs.existsSync(changelogPath)) {
   const text = fs.readFileSync(changelogPath, 'utf8');
   fs.writeFileSync(changelogPath, text.replace(
-    /(\[Unreleased\]:\s+https:\/\/github\.com\/tchivs\/gsd-omp\/compare\/v)\d+\.\d+\.\d+(\.\.\.HEAD)/,
+    /(\[Unreleased\]:\s+https:\/\/github\.com\/GManzato\/gsd-for-omp\/compare\/v)\d+\.\d+\.\d+(\.\.\.HEAD)/,
     `$1${version}$2`,
   ));
 }

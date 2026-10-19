@@ -3,11 +3,11 @@
 
 ## Scope
 
-This document describes the runtime architecture of `gsd-omp`: the installer and managed-file manifest, the GSD Embeddable Orchestration System (EoS) handshake, projection of GSD Core artifacts into an Oh My Pi (OMP) profile, the OMP extension lifecycle, localization, and the test/host-smoke boundaries. It is intended for maintainers tracing a change from the package entry point to an OMP session. It does not define GSD Core workflows or replace the authoritative command/skill content shipped by `@opengsd/gsd-core`.
+This document describes the runtime architecture of `gsd-for-omp`: the installer and managed-file manifest, the GSD Embeddable Orchestration System (EoS) handshake, projection of GSD Core artifacts into an Oh My Pi (OMP) profile, the OMP extension lifecycle, localization, and the test/host-smoke boundaries. It is intended for maintainers tracing a change from the package entry point to an OMP session. It does not define GSD Core workflows or replace the authoritative command/skill content shipped by `@opengsd/gsd-core`.
 
 Relevant implementation paths:
 
-- `bin/gsd-omp.cjs` — CommonJS installer CLI, runtime-root resolution, manifest ownership, and update checks.
+- `bin/gsd-for-omp.cjs` — CommonJS installer CLI, runtime-root resolution, manifest ownership, and update checks.
 - `src/eos.cjs` — EoS capability declaration and Host-Integration SDK negotiation.
 - `src/projection.cjs` — agent/skill projection and OMP-specific path/command rewriting.
 - `src/extension.cjs` — OMP ExtensionAPI factory, command/tool registration, lifecycle events, native status, task tracking, and optional Goal Mode adapter.
@@ -17,7 +17,7 @@ Relevant implementation paths:
 
 ## System overview
 
-`gsd-omp` is a CommonJS package that binds the GSD Core public CLI and Host-Integration SDK to OMP's native extension surface. The installer projects a managed extension wrapper plus GSD agents and skills into an OMP runtime root; OMP then loads that wrapper and invokes the extension factory. At extension load time, the plugin negotiates EoS protocol 1 with GSD Core and exposes a programmatic CLI profile. During a session, OMP owns model selection, native task dispatch, approvals, session state, and isolation, while GSD Core owns its CLI semantics and filesystem artifacts. The main data path is filesystem projection → native OMP extension → child-process invocation of `gsd-tools.cjs` → displayed OMP message/status, with project state read from the planning workspace.
+`gsd-for-omp` is a CommonJS package that binds the GSD Core public CLI and Host-Integration SDK to OMP's native extension surface. The installer projects a managed extension wrapper plus GSD agents and skills into an OMP runtime root; OMP then loads that wrapper and invokes the extension factory. At extension load time, the plugin negotiates EoS protocol 1 with GSD Core and exposes a programmatic CLI profile. During a session, OMP owns model selection, native task dispatch, approvals, session state, and isolation, while GSD Core owns its CLI semantics and filesystem artifacts. The main data path is filesystem projection → native OMP extension → child-process invocation of `gsd-tools.cjs` → displayed OMP message/status, with project state read from the planning workspace.
 
 The boundary is deliberate: this package adapts host interfaces but does not patch `gsd-core` source, implement a second GSD CLI, or replace OMP's native runtime. `src/eos.cjs` declares `runtime: 'bun'` as an EoS capability axis because that is the host contract; the extension invokes the resolved GSD CLI with Node's child-process API.
 
@@ -28,7 +28,7 @@ The boundary is deliberate: this package adapts host interfaces but does not pat
                                       |
                                       v
 +-------------------+       +-------------------+       +----------------------+
-| bin/gsd-omp.cjs   |------>| src/eos.cjs       |------>| Host-Integration SDK |
+| bin/gsd-for-omp.cjs   |------>| src/eos.cjs       |------>| Host-Integration SDK |
 | install/update/...|       | axes + handshake  |       | protocol 1           |
 +---------+---------+       +-------------------+       +----------+-----------+
           |                                                       |
@@ -54,22 +54,22 @@ The boundary is deliberate: this package adapts host interfaces but does not pat
 
 ## Installer and manifest
 
-`bin/gsd-omp.cjs` is the package's executable (`package.json` maps the `gsd-omp` bin to this file). It supports `install`, `uninstall`, `doctor`, `descriptor`, and `update`; with no command, `install` is selected. `--root PATH` is resolved to an absolute path and takes precedence over `PI_CODING_AGENT_DIR`; otherwise the root is `$PI_CODING_AGENT_DIR` or `~/.omp/agent`.
+`bin/gsd-for-omp.cjs` is the package's executable (`package.json` maps the `gsd-for-omp` bin to this file). It supports `install`, `uninstall`, `doctor`, `descriptor`, and `update`; with no command, `install` is selected. `--root PATH` is resolved to an absolute path and takes precedence over `PI_CODING_AGENT_DIR`; otherwise the root is `$PI_CODING_AGENT_DIR` or `~/.omp/agent`.
 
 An install performs these steps:
 
 1. Resolve `@opengsd/gsd-core` and run `Eos.initialize()`.
 2. Reject a bundled GSD Core version below `1.11.0`.
-3. Build `extensions/gsd-omp.ts`, a thin OMP module wrapper that imports `src/extension.cjs` and passes `{ runtime: "omp", runtimeRoot }`.
+3. Build `extensions/gsd-for-omp.ts`, a thin OMP module wrapper that imports `src/extension.cjs` and passes `{ runtime: "omp", runtimeRoot }`.
 4. Project every `gsd-*.md` agent and every `gsd-*` skill with a `SKILL.md` from the resolved core tree.
-5. Stage all files in a temporary transaction directory, replace prior targets only after ownership checks, and write `.gsd-omp-manifest.json`.
+5. Stage all files in a temporary transaction directory, replace prior targets only after ownership checks, and write `.gsd-for-omp-manifest.json`.
 6. Remove unchanged stale managed projections and recognized legacy CJS extensions. Modified stale files remain protected.
 
 The manifest is a version-1 JSON object containing `schemaVersion`, `plugin`, package `version`, `enginesGsd`, negotiated `protocolVersion`, resolved `coreVersion`, EoS `profile`, `installedAt`, and a `files` array. Each file entry contains a relative `path` and SHA-256 `sha256`. Manifest paths must remain relative, unique, within the runtime root, and point through regular directory components; symlinked parents are rejected.
 
 Ownership is hash-based. Reinstall/update refuses to overwrite a missing-manifest file or a managed file whose current hash differs from the recorded hash. Uninstall removes only unchanged regular files listed in the manifest and preserves modified or directory replacements; it keeps the manifest if anything is skipped. `--force` intentionally bypasses the hash mismatch check, but it does not bypass path-safety checks or permit a symlink traversal. This protects an OMP profile that contains user edits.
 
-`update` obtains the latest release metadata, installs a newer package globally with npm, then invokes the newly installed `gsd-omp install` so the new process projects the new extension, agents, skills, and bundled core. If the installed version is current, it reports that no projection update is needed. The external release lookup is implemented in `githubLatestRelease()` using the repository's GitHub API/latest-release page fallback. <!-- VERIFY: GitHub is an external release service; confirm network and organization policy before relying on it. -->
+`update` obtains the latest release metadata, installs a newer package globally with npm, then invokes the newly installed `gsd-for-omp install` so the new process projects the new extension, agents, skills, and bundled core. If the installed version is current, it reports that no projection update is needed. The external release lookup is implemented in `githubLatestRelease()` using the repository's GitHub API/latest-release page fallback. <!-- VERIFY: GitHub is an external release service; confirm network and organization policy before relying on it. -->
 
 ## EoS handshake and responsibility boundary
 
@@ -95,7 +95,7 @@ Responsibilities are intentionally separate:
 
 - **OMP** owns session lifecycle, the active model, native `task` jobs, job settlement, approvals, context compaction, retry/stop controls, session branching/switching, and isolation. A native task with `isolated: true` is OMP's isolation primitive.
 - **GSD Core** owns the `gsd-tools.cjs` command families, project/planning artifacts, agent and skill source content, and GSD-specific state transitions.
-- **gsd-omp** translates between them: it supplies OMP command handlers, passes `GSD_RUNTIME=omp` and the agent directory to child processes, tracks native task activity, renders status, and forwards hook decisions. It does not invent a replacement public GSD API.
+- **gsd-for-omp** translates between them: it supplies OMP command handlers, passes `GSD_RUNTIME=omp` and the agent directory to child processes, tracks native task activity, renders status, and forwards hook decisions. It does not invent a replacement public GSD API.
 
 The EoS `dispatch.isolation: 'none'` value must not be read as a request to disable OMP isolation. It describes the adapter's generic dispatch capability; projected execution instructions use OMP's native `task` and request `isolated: true` where repository changes require it.
 
@@ -150,7 +150,7 @@ When a goal is active (`enabled === true` and goal status `active`), the extensi
 
 ## Localization
 
-`src/locale.cjs` handles messages emitted by the shell CLI and EoS bootstrap. It resolves the first non-empty value in this order: `GSD_OMP_LOCALE`, `LC_ALL`, `LC_MESSAGES`, `LANG`. Values whose lowercased form starts with `zh` select `zh-CN`; all other values select `en`. Missing dictionary keys fall back to English, and unknown placeholders remain unchanged.
+`src/locale.cjs` handles messages emitted by the shell CLI and EoS bootstrap. It resolves the first non-empty value in this order: `GSD_FOR_OMP_LOCALE`, `LC_ALL`, `LC_MESSAGES`, `LANG`. Values whose lowercased form starts with `zh` select `zh-CN`; all other values select `en`. Missing dictionary keys fall back to English, and unknown placeholders remain unchanged.
 
 The in-session extension uses the project planning config's `response_language` instead. On the first interactive session for a project without that field, onboarding offers Simplified Chinese or English and writes the selected value to `.planning/config.json`; the optional interaction-style selection can also write `workflow.text_mode`. This separation prevents a shell locale from unexpectedly changing an already configured project session.
 
@@ -168,10 +168,10 @@ Inspect the negotiated contract and verify the installed projection without modi
 
 ```bash
 root="$(mktemp -d)"
-PI_CODING_AGENT_DIR="$root" gsd-omp install --json
-PI_CODING_AGENT_DIR="$root" gsd-omp descriptor --json
-PI_CODING_AGENT_DIR="$root" gsd-omp doctor --json
-PI_CODING_AGENT_DIR="$root" gsd-omp uninstall --json
+PI_CODING_AGENT_DIR="$root" gsd-for-omp install --json
+PI_CODING_AGENT_DIR="$root" gsd-for-omp descriptor --json
+PI_CODING_AGENT_DIR="$root" gsd-for-omp doctor --json
+PI_CODING_AGENT_DIR="$root" gsd-for-omp uninstall --json
 rm -rf "$root"
 ```
 
@@ -182,4 +182,4 @@ To trace a command from OMP to GSD Core, start OMP in a GSD project and use the 
 /gsd-status
 ```
 
-To inspect the exact projection implementation, begin at `bin/gsd-omp.cjs:desiredArtifacts()`, follow `buildProjectedArtifacts()` in `src/projection.cjs`, then follow `invokeAsync()` and the `pi.registerCommand()` calls in `src/extension.cjs`.
+To inspect the exact projection implementation, begin at `bin/gsd-for-omp.cjs:desiredArtifacts()`, follow `buildProjectedArtifacts()` in `src/projection.cjs`, then follow `invokeAsync()` and the `pi.registerCommand()` calls in `src/extension.cjs`.

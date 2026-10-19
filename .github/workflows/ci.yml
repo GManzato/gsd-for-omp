@@ -56,13 +56,13 @@ jobs:
         env:
           OMP_VERSION: ${{ matrix.omp-version }}
         run: npm install --global "@oh-my-pi/pi-coding-agent@${OMP_VERSION}"
-      - name: Install packed gsd-omp
+      - name: Install packed gsd-for-omp
         run: |
           package_tarball="$(npm pack --silent --ignore-scripts)"
           npm install --global "./${package_tarball}"
       - name: Exercise isolated OMP host
         env:
-          GSD_OMP_BIN: gsd-omp
+          GSD_FOR_OMP_BIN: gsd-for-omp
           OMP_VERSION: ${{ matrix.omp-version }}
         run: node scripts/host-smoke.cjs
 

@@ -1,7 +1,7 @@
 <!-- generated-by: gsd-doc-writer -->
 # Testing
 
-`gsd-omp` uses Node.js's built-in test runner for unit and contract tests, plus an isolated host smoke test that loads the packed package into OMP. The contributor workflow is described in [Development](DEVELOPMENT.md); user-facing verification is in [Getting Started](GETTING-STARTED.md).
+`gsd-for-omp` uses Node.js's built-in test runner for unit and contract tests, plus an isolated host smoke test that loads the packed package into OMP. The contributor workflow is described in [Development](DEVELOPMENT.md); user-facing verification is in [Getting Started](GETTING-STARTED.md).
 
 ## Test framework and setup
 
@@ -63,7 +63,7 @@ The expected healthy path is protocol version `1`, more than 50 projected artifa
 
 ### Locale
 
-`test/locale.test.cjs` checks the frozen public locale API, `zh*` normalization to `zh-CN`, English fallback, environment precedence (`GSD_OMP_LOCALE` → `LC_ALL` → `LC_MESSAGES` → `LANG`), placeholder interpolation, dictionary fallback, and English/Chinese key and placeholder parity.
+`test/locale.test.cjs` checks the frozen public locale API, `zh*` normalization to `zh-CN`, English fallback, environment precedence (`GSD_FOR_OMP_LOCALE` → `LC_ALL` → `LC_MESSAGES` → `LANG`), placeholder interpolation, dictionary fallback, and English/Chinese key and placeholder parity.
 
 ### Extension and Goal Mode
 
@@ -86,14 +86,14 @@ npm ci
 npm install --global "@oh-my-pi/pi-coding-agent@17.0.3"
 package_tarball="$(npm pack --silent --ignore-scripts)"
 npm install --global "./${package_tarball}"
-GSD_OMP_BIN=gsd-omp OMP_VERSION=17.0.3 node scripts/host-smoke.cjs
+GSD_FOR_OMP_BIN=gsd-for-omp OMP_VERSION=17.0.3 node scripts/host-smoke.cjs
 ```
 
 Repeat the host steps with `@latest` and `OMP_VERSION=latest`:
 
 ```bash
 npm install --global "@oh-my-pi/pi-coding-agent@latest"
-GSD_OMP_BIN=gsd-omp OMP_VERSION=latest node scripts/host-smoke.cjs
+GSD_FOR_OMP_BIN=gsd-for-omp OMP_VERSION=latest node scripts/host-smoke.cjs
 ```
 
 The script creates an isolated temporary runtime root, so the smoke test does not modify the developer's normal `~/.omp/agent`. It checks:
@@ -128,12 +128,12 @@ The host matrix is `fail-fast: false`, so pinned and latest compatibility result
 ## Diagnosing failures
 
 - **Syntax or unit failure:** run `npm run lint`, then the focused `node --test test/<suite>.test.cjs` command. Read the first failing assertion; the suite names above identify the contract being exercised.
-- **Installer/ownership failure:** run `gsd-omp doctor --json` against the same runtime root used for the install. Check `missing`, `modified`, and `root`; do not use `--force` until you have decided whether local edits should be replaced.
-- **EoS failure:** run `gsd-omp descriptor --json`. Protocol must be `1` and profile must be `programmatic-cli`; an unsupported GSD Core version or SDK negotiation error points to the installed dependency rather than an OMP session.
+- **Installer/ownership failure:** run `gsd-for-omp doctor --json` against the same runtime root used for the install. Check `missing`, `modified`, and `root`; do not use `--force` until you have decided whether local edits should be replaced.
+- **EoS failure:** run `gsd-for-omp descriptor --json`. Protocol must be `1` and profile must be `programmatic-cli`; an unsupported GSD Core version or SDK negotiation error points to the installed dependency rather than an OMP session.
 - **Projection failure:** inspect the focused projection suite and the generated runtime paths. The installer must keep the manifest inside the selected runtime root and must not follow symlinked parents.
 - **OMP 17 host failure:** verify the pinned host was installed as `@oh-my-pi/pi-coding-agent@17.0.3`. Goal Mode is not expected there; absence of `goal_updated` must not be reported as an extension error.
 - **Latest host failure:** inspect the RPC frames and `available_commands_update` in the smoke output. The script explicitly retries with `--tools read,write,gsd_invoke` for newer hosts whose default active tool set omits `gsd_invoke`. If both attempts fail, compare the host contract with the assertions in `scripts/host-smoke.cjs`.
-- **Network/release failure:** `gsd-omp update` depends on GitHub release metadata. For a local smoke run, install the packed tarball as shown above; this separates package/host failures from release lookup failures.
+- **Network/release failure:** `gsd-for-omp update` depends on GitHub release metadata. For a local smoke run, install the packed tarball as shown above; this separates package/host failures from release lookup failures.
 
 Do not treat the OMP 17 Goal Mode fallback as a failed test: the required result is a loadable extension with the normal GSD command and status surfaces, without the optional `goal_updated` integration.
 

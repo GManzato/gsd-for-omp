@@ -2,7 +2,7 @@ name: Auto-release
 
 # Publishes a new version whenever main moves ahead of the latest release:
 # bumps the patch version, opens/updates a release PR, waits for CI, merges,
-# tags, and creates the GitHub release (the source for `gsd-omp update`).
+# tags, and creates the GitHub release (the source for `gsd-for-omp update`).
 #
 # main is protected by the "Protect main" ruleset (pull_request +
 # required_status_checks), so the bump itself goes through a PR.
@@ -67,9 +67,9 @@ jobs:
           set -euo pipefail
           new_version="${{ steps.state.outputs.new_version }}"
           branch="chore/release-v${new_version}"
-          git config user.name "gsd-omp release bot"
+          git config user.name "gsd-for-omp release bot"
           git config user.email "actions@users.noreply.github.com"
-          existing="$(gh pr list --repo "${{ github.repository }}" --search 'chore: release gsd-omp' --state open --json number,headRefName --jq '.[0] // empty')"
+          existing="$(gh pr list --repo "${{ github.repository }}" --search 'chore: release gsd-for-omp' --state open --json number,headRefName --jq '.[0] // empty')"
           if [ -n "${existing}" ]; then
             pr_num="$(printf '%s' "${existing}" | jq -r .number)"
             head_ref="$(printf '%s' "${existing}" | jq -r .headRefName)"
@@ -78,17 +78,17 @@ jobs:
             git rebase origin/main
             node scripts/bump-version.cjs "${new_version}"
             git add -A
-            git -c user.name="gsd-omp release bot" -c user.email="actions@users.noreply.github.com" commit -m "chore: release gsd-omp v${new_version}" || echo "no new changes"
+            git -c user.name="gsd-for-omp release bot" -c user.email="actions@users.noreply.github.com" commit -m "chore: release gsd-for-omp v${new_version}" || echo "no new changes"
             git push --force origin "${head_ref}"
             echo "number=${pr_num}" >> "$GITHUB_OUTPUT"
           else
             git checkout -b "${branch}"
             node scripts/bump-version.cjs "${new_version}"
             git add -A
-            git -c user.name="gsd-omp release bot" -c user.email="actions@users.noreply.github.com" commit -m "chore: release gsd-omp v${new_version}"
+            git -c user.name="gsd-for-omp release bot" -c user.email="actions@users.noreply.github.com" commit -m "chore: release gsd-for-omp v${new_version}"
             git push --force -u origin "${branch}"
             pr_url="$(gh pr create --repo "${{ github.repository }}" --base main --head "${branch}" \
-              --title "chore: release gsd-omp v${new_version}" \
+              --title "chore: release gsd-for-omp v${new_version}" \
               --body "Automated release PR created by the Auto-release workflow (bumps package version and README install URLs).")"
             pr_num="${pr_url##*/}"
             echo "number=${pr_num}" >> "$GITHUB_OUTPUT"
@@ -145,7 +145,7 @@ jobs:
                 git rebase origin/main
                 node scripts/bump-version.cjs "${new_version}"
                 git add -A
-                git -c user.name="gsd-omp release bot" -c user.email="actions@users.noreply.github.com" commit -m "chore: release gsd-omp v${new_version}" || echo "no new changes"
+                git -c user.name="gsd-for-omp release bot" -c user.email="actions@users.noreply.github.com" commit -m "chore: release gsd-for-omp v${new_version}" || echo "no new changes"
                 git push --force origin "${head_ref}"
                 sleep 15
                 ;;
@@ -187,6 +187,6 @@ jobs:
           if ! gh release view "${tag}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             prev="$(gh release list --repo "${{ github.repository }}" --limit 2 --json tagName --jq 'if length > 1 then .[1].tagName else .[0].tagName end')"
             notes="$(gh api "repos/${{ github.repository }}/compare/${prev}...${sha}" --jq '.commits[].commit.message | split("\n")[0]' | sed 's/^/- /')"
-            gh release create "${tag}" --repo "${{ github.repository }}" --title "gsd-omp v${new_version}" --notes "${notes}"
+            gh release create "${tag}" --repo "${{ github.repository }}" --title "gsd-for-omp v${new_version}" --notes "${notes}"
           fi
           echo "published ${tag} at ${sha}"

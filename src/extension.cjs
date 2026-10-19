@@ -30,7 +30,7 @@ function resolveEngineRoot(startDir) {
       if (parent === dir) break;
       dir = parent;
     }
-    throw new Error('gsd-omp: @opengsd/gsd-core >=1.11.0 is required');
+    throw new Error('gsd-for-omp: @opengsd/gsd-core >=1.11.0 is required');
   }
 }
 
@@ -883,7 +883,7 @@ module.exports = function gsdPiExtension(pi, options = {}) {
   // by task `name` (the agent registry id), but job-completion events key on
   // `jobId` — a separate id space (OMP AsyncJob.jobId != agentId). Without
   // bridging, every detached task leaks its name entry and /gsd-next is
-  // permanently blocked by a stale count. See open-gsd/gsd-omp task tracking.
+  // permanently blocked by a stale count.
   function reconcileTaskSettlement(event, cwd) {
     if (event?.toolName !== 'task' || event.isError || typeof event.toolCallId !== 'string') return;
     const projectPath = path.resolve(cwd);
@@ -1072,7 +1072,7 @@ module.exports = function gsdPiExtension(pi, options = {}) {
         if (parent === dir) break;
         dir = parent;
       }
-      throw new Error('gsd-omp: @opengsd/gsd-core >=1.11.0 is required');
+      throw new Error('gsd-for-omp: @opengsd/gsd-core >=1.11.0 is required');
     }
   }
 

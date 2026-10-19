@@ -1,15 +1,15 @@
 <!-- generated-by: gsd-doc-writer -->
 # Development
 
-This guide covers local work on `gsd-omp`, an independently maintained CommonJS OMP extension plugin. End-user installation and recovery steps are in [Getting Started](GETTING-STARTED.md); the module boundaries are documented in [Architecture](ARCHITECTURE.md).
+This guide covers local work on `gsd-for-omp`, an independently maintained CommonJS OMP extension plugin. End-user installation and recovery steps are in [Getting Started](GETTING-STARTED.md); the module boundaries are documented in [Architecture](ARCHITECTURE.md).
 
 ## Local setup
 
 The package requires Node.js `>=24.0.0` and resolves `@opengsd/gsd-core` from the package dependency (`^1.11.0`). From a checkout:
 
 ```bash
-git clone https://github.com/tchivs/gsd-omp.git
-cd gsd-omp
+git clone https://github.com/GManzato/gsd-for-omp.git
+cd gsd-for-omp
 npm install
 ```
 
@@ -22,7 +22,7 @@ npm ci
 The repository has no `.env` setup step. Keep host experiments isolated from a developer's OMP profile by choosing a temporary runtime root:
 
 ```bash
-PI_CODING_AGENT_DIR="$(mktemp -d)" node bin/gsd-omp.cjs install
+PI_CODING_AGENT_DIR="$(mktemp -d)" node bin/gsd-for-omp.cjs install
 ```
 
 The installer defaults to `~/.omp/agent` when `PI_CODING_AGENT_DIR` is absent. The extension wrapper receives that runtime root and projected skills are discovered from its `skills/` directory.
@@ -54,14 +54,14 @@ Exercise the pinned OMP compatibility target in an isolated runtime:
 
 ```bash
 npm install --global "@oh-my-pi/pi-coding-agent@17.0.3"
-GSD_OMP_BIN=gsd-omp OMP_VERSION=17.0.3 node scripts/host-smoke.cjs
+GSD_FOR_OMP_BIN=gsd-for-omp OMP_VERSION=17.0.3 node scripts/host-smoke.cjs
 ```
 
 Repeat with the moving host channel:
 
 ```bash
 npm install --global "@oh-my-pi/pi-coding-agent@latest"
-GSD_OMP_BIN=gsd-omp OMP_VERSION=latest node scripts/host-smoke.cjs
+GSD_FOR_OMP_BIN=gsd-for-omp OMP_VERSION=latest node scripts/host-smoke.cjs
 ```
 
 `scripts/host-smoke.cjs` creates and removes its own temporary `PI_CODING_AGENT_DIR`, installs with `--json`, checks the EoS protocol/core range, validates `doctor` and `descriptor`, launches OMP in RPC mode, checks representative extension commands, and uninstalls the projection. It supplies a placeholder `OPENAI_API_KEY` when one is not present; the smoke test does not require a real key for these startup and state checks.
@@ -71,7 +71,7 @@ The compatibility boundary is intentional. OMP `17.0.3` has no `goal_updated` ev
 ## Code layout
 
 ```text
-bin/gsd-omp.cjs          Global installer, updater, doctor, descriptor, and argument parser
+bin/gsd-for-omp.cjs          Global installer, updater, doctor, descriptor, and argument parser
 src/eos.cjs              Protocol-v1 EoS handshake and OMP adapter construction
 src/extension.cjs        OMP ExtensionAPI commands, tools, events, status, and Goal Mode bridge
 src/projection.cjs       Runtime path rewriting and agent/skill projection
@@ -108,7 +108,7 @@ For changes to installation, projection, extension registration, or host compati
 2. If `HEAD` already has the current version tag, do nothing. If the package version is already ahead of the latest tag, tag that version; otherwise increment the patch version.
 3. For a bump, create or update `chore/release-v<version>`, run `node scripts/bump-version.cjs <semver>`, commit the package/lockfile/README URL changes, and open or update a PR targeting `main`.
 4. Wait for the PR's CI status. The workflow merges a clean release PR (or waits for required approval when GitHub marks a run `action_required`).
-5. Tag the resulting commit as `v<version>` and create the GitHub release. That release is the source used by `gsd-omp update`.
+5. Tag the resulting commit as `v<version>` and create the GitHub release. That release is the source used by `gsd-for-omp update`.
 
 The release job currently sets up Node.js `22.x` in its workflow, while the package's runtime engine remains Node.js `>=24.0.0`; local development and CI should use Node 24 or newer. Do not hand-edit generated release metadata in a feature PR; the release workflow and `scripts/bump-version.cjs` keep `package.json`, `package-lock.json`, and the two README install URLs aligned.
 

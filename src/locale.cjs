@@ -1,16 +1,16 @@
 'use strict';
 
 /**
- * Minimal env-based locale loader for the gsd-omp host CLI.
+ * Minimal env-based locale loader for the gsd-for-omp host CLI.
  *
  * Layering: the OMP runtime extension (src/extension.cjs) localizes its output
  * through the project config field `response_language` (see usesChinese(cwd)).
  * That is the correct layer for runtime messages because the extension runs
  * inside an OMP session with a project cwd.
  *
- * The install/doctor/descriptor CLI (bin/gsd-omp.cjs) and the EoS bootstrap
+ * The install/doctor/descriptor CLI (bin/gsd-for-omp.cjs) and the EoS bootstrap
  * (src/eos.cjs) run from the shell with no project context, so they follow the
- * POSIX convention instead: GSD_OMP_LOCALE -> LC_ALL -> LC_MESSAGES -> LANG.
+ * POSIX convention instead: GSD_FOR_OMP_LOCALE -> LC_ALL -> LC_MESSAGES -> LANG.
  *
  * Two locales ship: `en` (default) and `zh-CN`. Any value whose lowercase form
  * starts with `zh` resolves to `zh-CN`; everything else falls back to `en`.
@@ -29,7 +29,7 @@ function normalize(raw) {
 }
 
 function detectFromEnv(env = process.env) {
-  return normalize(env.GSD_OMP_LOCALE || env.LC_ALL || env.LC_MESSAGES || env.LANG);
+  return normalize(env.GSD_FOR_OMP_LOCALE || env.LC_ALL || env.LC_MESSAGES || env.LANG);
 }
 
 let current = detectFromEnv();

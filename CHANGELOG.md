@@ -1,12 +1,21 @@
 # Changelog
 
-All notable changes to `gsd-omp` are recorded here in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) style. The canonical changelog filename is **CHANGELOG.md**. See the [README](README.md) for the current installation and usage documentation.
+All notable changes to `gsd-for-omp` are recorded here in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) style. The canonical changelog filename is **CHANGELOG.md**. See the [README](README.md) for the current installation and usage documentation. Entries up to 1.0.25 were released as `gsd-omp` from [tchivs/gsd-omp](https://github.com/tchivs/gsd-omp).
 
 ## [Unreleased]
 
+### Changed
+
+- Continued the project as `gsd-for-omp`, a fork of `tchivs/gsd-omp`. The npm package, CLI (`gsd-for-omp`), projected extension (`extensions/gsd-for-omp.ts`), ownership manifest (`.gsd-for-omp-manifest.json`), and locale override (`GSD_FOR_OMP_LOCALE`) are renamed accordingly. Remove an existing `gsd-omp` install (`gsd-omp uninstall && npm uninstall --global gsd-omp`) before installing `gsd-for-omp`: both register the same `/gsd-*` commands and agent names.
+
+### Added
+
+- `/gsd-execute-phase` asks the orchestrator to track the run with OMP's native `todo` tool: one item per wave plus the post-wave gates. Contributed by Andrii Panasiuk ([tchivs/gsd-omp#73](https://github.com/tchivs/gsd-omp/pull/73)).
+
 ### Fixed
 
-- Stopped projecting GSD Core `agents/*.compact.md` variants into the OMP agents directory. Each variant shares its base agent's `name`, and OMP registered the compact file in place of the full agent, so most GSD subagents ran with the compact prompt even when `workflow.compact_content` was off. This matches GSD Core's own installer (`hostBehaviors.skipCompactAgents`). `gsd-omp update` removes previously projected compact files; with `workflow.compact_content` enabled, GSD Core falls back to the full agent prompt under OMP.
+- The projected `gsd-execute-phase` skill carries the same OMP executor dispatch contract as the `/gsd-execute-phase` command, so a skill-driven run no longer stops on GSD Core's `runtime 'omp' declares no executor-isolation primitive` gate. Contributed by Andrii Panasiuk ([tchivs/gsd-omp#74](https://github.com/tchivs/gsd-omp/pull/74)).
+- Stopped projecting GSD Core `agents/*.compact.md` variants into the OMP agents directory. Each variant shares its base agent's `name`, and OMP registered the compact file in place of the full agent, so most GSD subagents ran with the compact prompt even when `workflow.compact_content` was off. This matches GSD Core's own installer (`hostBehaviors.skipCompactAgents`). `gsd-for-omp update` removes previously projected compact files; with `workflow.compact_content` enabled, GSD Core falls back to the full agent prompt under OMP ([tchivs/gsd-omp#75](https://github.com/tchivs/gsd-omp/pull/75)).
 
 ## [1.0.20] - 2026-08-29
 
@@ -52,7 +61,7 @@ Related: [PR #53](https://github.com/tchivs/gsd-omp/pull/53), [release PR #54](h
 
 Related: [PR #51](https://github.com/tchivs/gsd-omp/pull/51), [release PR #52](https://github.com/tchivs/gsd-omp/pull/52).
 
-[Unreleased]: https://github.com/tchivs/gsd-omp/compare/v1.0.25...HEAD
+[Unreleased]: https://github.com/GManzato/gsd-for-omp/compare/v1.0.25...HEAD
 [1.0.20]: https://github.com/tchivs/gsd-omp/releases/tag/v1.0.20
 [1.0.19]: https://github.com/tchivs/gsd-omp/releases/tag/v1.0.19
 [1.0.18]: https://github.com/tchivs/gsd-omp/releases/tag/v1.0.18

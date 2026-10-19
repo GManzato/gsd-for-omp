@@ -1,20 +1,22 @@
 # GSD for Oh My Pi
-[![CI](https://img.shields.io/github/actions/workflow/status/tchivs/gsd-omp/ci.yml?branch=main&logo=githubactions&logoColor=white&label=CI)](https://github.com/tchivs/gsd-omp/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/tchivs/gsd-omp?logo=github&label=release)](https://github.com/tchivs/gsd-omp/releases)
-[![License: MIT](https://img.shields.io/github/license/tchivs/gsd-omp?color=blue)](./LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/GManzato/gsd-for-omp/ci.yml?branch=main&logo=githubactions&logoColor=white&label=CI)](https://github.com/GManzato/gsd-for-omp/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/GManzato/gsd-for-omp?logo=github&label=release)](https://github.com/GManzato/gsd-for-omp/releases)
+[![License: MIT](https://img.shields.io/github/license/GManzato/gsd-for-omp?color=blue)](./LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%E2%89%A524-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![GSD Core](https://img.shields.io/badge/gsd--core-%E2%89%A51.11.0-0066cc)](https://github.com/open-gsd/gsd-core)
 [![OMP EoS](https://img.shields.io/badge/OMP-EoS%20v1-6c31c4)](#eos-contract)
-[![Last Commit](https://img.shields.io/github/last-commit/tchivs/gsd-omp?logo=git&logoColor=white)](https://github.com/tchivs/gsd-omp/commits)
-[![Stars](https://img.shields.io/github/stars/tchivs/gsd-omp?style=social)](https://github.com/tchivs/gsd-omp/stargazers)
-[![Contributors](https://img.shields.io/github/contributors/tchivs/gsd-omp?color=orange&logo=github)](https://github.com/tchivs/gsd-omp/graphs/contributors)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](https://github.com/tchivs/gsd-omp/pulls)
+[![Last Commit](https://img.shields.io/github/last-commit/GManzato/gsd-for-omp?logo=git&logoColor=white)](https://github.com/GManzato/gsd-for-omp/commits)
+[![Stars](https://img.shields.io/github/stars/GManzato/gsd-for-omp?style=social)](https://github.com/GManzato/gsd-for-omp/stargazers)
+[![Contributors](https://img.shields.io/github/contributors/GManzato/gsd-for-omp?color=orange&logo=github)](https://github.com/GManzato/gsd-for-omp/graphs/contributors)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](https://github.com/GManzato/gsd-for-omp/pulls)
 
 **English** · [简体中文](./README.zh-CN.md)
 
-`gsd-omp` is an independently maintained Oh My Pi host plugin for the [GSD Embeddable Orchestration System](https://github.com/open-gsd/gsd-core/blob/next/docs/explanation/embeddable-orchestration-system.md). It binds OMP's native extension, command, event, task, and filesystem surfaces to GSD through protocol version 1 of the public Host-Integration SDK. On hosts that expose Goal Mode, it mirrors optional goal state in the GSD status surfaces without taking ownership of OMP's GoalRuntime.
+`gsd-for-omp` is an independently maintained Oh My Pi host plugin for the [GSD Embeddable Orchestration System](https://github.com/open-gsd/gsd-core/blob/next/docs/explanation/embeddable-orchestration-system.md). It binds OMP's native extension, command, event, task, and filesystem surfaces to GSD through protocol version 1 of the public Host-Integration SDK. On hosts that expose Goal Mode, it mirrors optional goal state in the GSD status surfaces without taking ownership of OMP's GoalRuntime.
 
 This project is third-party software. It is not endorsed, reviewed, or maintained by OpenGSD.
+
+`gsd-for-omp` is a fork of [tchivs/gsd-omp](https://github.com/tchivs/gsd-omp), continued as an independent project. The first `gsd-for-omp` release is pending; until it is published, install from `main` with `npm install --global github:GManzato/gsd-for-omp` followed by `gsd-for-omp install`.
 
 
 ## Documentation
@@ -40,8 +42,8 @@ This project is third-party software. It is not endorsed, reviewed, or maintaine
 Install the released plugin globally, then project its managed extension, agents, and skills into OMP:
 
 ```bash
-npm install --global https://github.com/tchivs/gsd-omp/archive/refs/tags/v1.0.25.tar.gz
-gsd-omp install
+npm install --global https://github.com/GManzato/gsd-for-omp/archive/refs/tags/v1.0.25.tar.gz
+gsd-for-omp install
 ```
 
 `PI_CODING_AGENT_DIR` is honored. Without it, files are installed under `~/.omp/agent`.
@@ -164,12 +166,12 @@ The `Ctrl+Shift+G` shortcut opens a live native status overlay. Press `e` inside
 Native task execution events, context usage, automatic compaction, retry state, and detached job settlement feed the widget and footer. Native task tracking stays internal; `/gsd-status` is the status surface.
 
 Projected skills receive OMP argument completion and session labels where their workflow has a stable argument contract. The underlying projected `SKILL.md` remains authoritative for every validation, approval, artifact, and commit gate.
-When OMP exposes Goal Mode (`goal_updated`, available in newer OMP hosts), `gsd-omp` mirrors the objective, status, and token budget in `/gsd-status`, the footer, the widget, and the live overlay. It restores the latest state from the OMP session journal at session start or reload. While an active Goal Mode objective is running, GSD continuation prompts remain pending so the two continuation loops do not compete; run `/goal pause` or `/goal drop` before `/gsd-next`. Hosts without `goal_updated` (including OMP 17) keep the rest of the GSD integration available without this optional surface.
+When OMP exposes Goal Mode (`goal_updated`, available in newer OMP hosts), `gsd-for-omp` mirrors the objective, status, and token budget in `/gsd-status`, the footer, the widget, and the live overlay. It restores the latest state from the OMP session journal at session start or reload. While an active Goal Mode objective is running, GSD continuation prompts remain pending so the two continuation loops do not compete; run `/goal pause` or `/goal drop` before `/gsd-next`. Hosts without `goal_updated` (including OMP 17) keep the rest of the GSD integration available without this optional surface.
 
 ## Verify
 
 ```bash
-gsd-omp doctor
+gsd-for-omp doctor
 ```
 
 A healthy install reports `"ok": true`, EoS profile `programmatic-cli`, and protocol version `1`.
@@ -177,31 +179,31 @@ A healthy install reports `"ok": true`, EoS profile `programmatic-cli`, and prot
 To inspect the exact EoS declaration:
 
 ```bash
-gsd-omp descriptor
+gsd-for-omp descriptor
 ```
 
 ## Upgrade
 
 ```bash
-gsd-omp update
+gsd-for-omp update
 ```
 
 Checks GitHub for the latest release, installs it (npm global tarball install), and re-projects the managed extension, agents, and skills in one step. Restart OMP afterwards.
 
-> **GSD core version**: `gsd-omp update` upgrades the bundled gsd-core (it is this package's dependency). OMP's own `~/.omp/agent/gsd-core/` engine tree (currently 1.7.0-rc.6) is outside this plugin's management — the plugin resolves gsd-core from its own `node_modules`. To align the OMP-side engine with the plugin, use OMP's own update path (e.g. `omp update`).
+> **GSD core version**: `gsd-for-omp update` upgrades the bundled gsd-core (it is this package's dependency). OMP's own `~/.omp/agent/gsd-core/` engine tree (currently 1.7.0-rc.6) is outside this plugin's management — the plugin resolves gsd-core from its own `node_modules`. To align the OMP-side engine with the plugin, use OMP's own update path (e.g. `omp update`).
 
 If the update check fails (offline, GitHub unreachable), fall back to the manual steps:
 
 ```bash
-gsd-omp uninstall
-npm install --global https://github.com/tchivs/gsd-omp/archive/refs/tags/v1.0.25.tar.gz
-gsd-omp install
+gsd-for-omp uninstall
+npm install --global https://github.com/GManzato/gsd-for-omp/archive/refs/tags/v1.0.25.tar.gz
+gsd-for-omp install
 ```
 
 The installer refuses to overwrite unmanaged or locally modified projections. Use `--force` only when intentionally replacing earlier GSD-owned OMP files:
 
 ```bash
-gsd-omp install --force
+gsd-for-omp install --force
 ```
 
 ## Uninstall
@@ -209,8 +211,8 @@ gsd-omp install --force
 Remove managed OMP artifacts before removing the package that owns the installer:
 
 ```bash
-gsd-omp uninstall
-npm uninstall --global gsd-omp
+gsd-for-omp uninstall
+npm uninstall --global gsd-for-omp
 ```
 Modified managed files are preserved and reported. Pass `--force` only when they should be deleted.
 
@@ -242,9 +244,9 @@ True per-agent routing (planner on a strong model, executor on a fast one) would
 
 ## Locale
 
-The host CLI (`gsd-omp install|uninstall|doctor|descriptor`) and EoS bootstrap messages localize through the POSIX environment, resolved in this order:
+The host CLI (`gsd-for-omp install|uninstall|doctor|descriptor`) and EoS bootstrap messages localize through the POSIX environment, resolved in this order:
 
-1. `GSD_OMP_LOCALE` — explicit override, takes precedence
+1. `GSD_FOR_OMP_LOCALE` — explicit override, takes precedence
 2. `LC_ALL`
 3. `LC_MESSAGES`
 4. `LANG`
@@ -253,7 +255,7 @@ Any value whose lowercased form starts with `zh` (e.g. `zh_CN.UTF-8`, `zh_TW`) s
 
 ```bash
 # force Chinese output regardless of shell locale
-GSD_OMP_LOCALE=zh_CN.UTF-8 gsd-omp doctor
+GSD_FOR_OMP_LOCALE=zh_CN.UTF-8 gsd-for-omp doctor
 ```
 
 Messages from the in-session OMP extension (`/gsd-*` commands, status widgets, continuations) are localized separately through the project's `response_language` field in `.planning/config.json`. The first time the extension loads in a GSD project without that field set, it offers a one-time `简体中文 / English` picker.
@@ -283,10 +285,10 @@ The plugin imports GSD's versioned Host-Integration SDK entry, negotiates the Eo
 
 The installer writes:
 
-- `extensions/gsd-omp.ts`
+- `extensions/gsd-for-omp.ts`
 - projected `agents/gsd-*.md`
 - projected `skills/gsd-*/SKILL.md`
-- `.gsd-omp-manifest.json` with ownership hashes
+- `.gsd-for-omp-manifest.json` with ownership hashes
 
 The manifest makes upgrades and uninstalls ownership-aware. Files changed after installation are not overwritten or removed without `--force`.
 
@@ -301,7 +303,7 @@ npm test
 A local isolated install can be exercised without touching the user's OMP profile:
 
 ```bash
-PI_CODING_AGENT_DIR="$(mktemp -d)" node bin/gsd-omp.cjs install
+PI_CODING_AGENT_DIR="$(mktemp -d)" node bin/gsd-for-omp.cjs install
 ```
 
 ## Attribution

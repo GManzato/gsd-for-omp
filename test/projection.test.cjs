@@ -51,7 +51,7 @@ test('projectSkill gives only the execute-phase skill the OMP dispatch contract'
 });
 
 test('buildProjectedArtifacts filters and deterministically orders core artifacts', () => {
-  const coreRoot = temporaryRoot('gsd-omp-projection-core');
+  const coreRoot = temporaryRoot('gsd-for-omp-projection-core');
   const runtimeRoot = '/omp-runtime';
   try {
     fs.mkdirSync(path.join(coreRoot, 'commands', 'gsd'), { recursive: true });

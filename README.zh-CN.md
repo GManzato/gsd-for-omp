@@ -1,21 +1,23 @@
 # GSD for Oh My Pi
 
-[![CI](https://img.shields.io/github/actions/workflow/status/tchivs/gsd-omp/ci.yml?branch=main&logo=githubactions&logoColor=white&label=CI)](https://github.com/tchivs/gsd-omp/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/tchivs/gsd-omp?logo=github&label=release)](https://github.com/tchivs/gsd-omp/releases)
-[![License: MIT](https://img.shields.io/github/license/tchivs/gsd-omp?color=blue)](./LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/GManzato/gsd-for-omp/ci.yml?branch=main&logo=githubactions&logoColor=white&label=CI)](https://github.com/GManzato/gsd-for-omp/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/GManzato/gsd-for-omp?logo=github&label=release)](https://github.com/GManzato/gsd-for-omp/releases)
+[![License: MIT](https://img.shields.io/github/license/GManzato/gsd-for-omp?color=blue)](./LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%E2%89%A524-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![GSD Core](https://img.shields.io/badge/gsd--core-%E2%89%A51.11.0-0066cc)](https://github.com/open-gsd/gsd-core)
 [![OMP EoS](https://img.shields.io/badge/OMP-EoS%20v1-6c31c4)](#eos-契约)
-[![Last Commit](https://img.shields.io/github/last-commit/tchivs/gsd-omp?logo=git&logoColor=white)](https://github.com/tchivs/gsd-omp/commits)
-[![Stars](https://img.shields.io/github/stars/tchivs/gsd-omp?style=social)](https://github.com/tchivs/gsd-omp/stargazers)
-[![Contributors](https://img.shields.io/github/contributors/tchivs/gsd-omp?color=orange&logo=github)](https://github.com/tchivs/gsd-omp/graphs/contributors)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](https://github.com/tchivs/gsd-omp/pulls)
+[![Last Commit](https://img.shields.io/github/last-commit/GManzato/gsd-for-omp?logo=git&logoColor=white)](https://github.com/GManzato/gsd-for-omp/commits)
+[![Stars](https://img.shields.io/github/stars/GManzato/gsd-for-omp?style=social)](https://github.com/GManzato/gsd-for-omp/stargazers)
+[![Contributors](https://img.shields.io/github/contributors/GManzato/gsd-for-omp?color=orange&logo=github)](https://github.com/GManzato/gsd-for-omp/graphs/contributors)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](https://github.com/GManzato/gsd-for-omp/pulls)
 
 [English](./README.md) · **简体中文**
 
-`gsd-omp` 是一个独立维护的 Oh My Pi 宿主插件，面向 [GSD 嵌入式编排系统](https://github.com/open-gsd/gsd-core/blob/next/docs/explanation/embeddable-orchestration-system.md)。它通过公共 Host-Integration SDK 的协议版本 1，将 OMP 原生的扩展、命令、事件、任务与文件系统接口绑定到 GSD。在提供 Goal Mode 的主机上，它会把可选的目标状态同步到 GSD 状态界面，但不会接管 OMP 的 GoalRuntime。
+`gsd-for-omp` 是一个独立维护的 Oh My Pi 宿主插件，面向 [GSD 嵌入式编排系统](https://github.com/open-gsd/gsd-core/blob/next/docs/explanation/embeddable-orchestration-system.md)。它通过公共 Host-Integration SDK 的协议版本 1，将 OMP 原生的扩展、命令、事件、任务与文件系统接口绑定到 GSD。在提供 Goal Mode 的主机上，它会把可选的目标状态同步到 GSD 状态界面，但不会接管 OMP 的 GoalRuntime。
 
 本项目为第三方软件，未由 OpenGSD 背书、审查或维护。
+
+`gsd-for-omp` 派生自 [tchivs/gsd-omp](https://github.com/tchivs/gsd-omp)，现作为独立项目继续维护。首个 `gsd-for-omp` 版本尚未发布；发布前请从 `main` 安装：`npm install --global github:GManzato/gsd-for-omp`，然后运行 `gsd-for-omp install`。
 
 ## 文档
 
@@ -40,8 +42,8 @@
 全局安装已发布的插件，随后将其托管的扩展、agents 与 skills 投影到 OMP：
 
 ```bash
-npm install --global https://github.com/tchivs/gsd-omp/archive/refs/tags/v1.0.25.tar.gz
-gsd-omp install
+npm install --global https://github.com/GManzato/gsd-for-omp/archive/refs/tags/v1.0.25.tar.gz
+gsd-for-omp install
 ```
 
 支持 `PI_CODING_AGENT_DIR` 环境变量。未设置时，文件安装到 `~/.omp/agent`。
@@ -164,12 +166,12 @@ gsd-omp install
 原生任务执行事件、上下文使用量、自动压缩、自动重试和异步任务结算都会同步到 widget 与 footer。原生任务跟踪保持内部机制，用户状态入口统一为 `/gsd-status`。
 
 当 projected skill 具有稳定参数契约时，插件会提供 OMP 参数补全和 session 命名；底层 projected `SKILL.md` 仍是所有校验、批准、产物和提交门的权威来源。
-当 OMP 提供 Goal Mode 的 `goal_updated` 事件时（较新的 OMP 主机支持），`gsd-omp` 会在 `/gsd-status`、footer、widget 和实时 overlay 中同步目标、状态与 token 预算；它会在 session 启动或重新加载时从 OMP session journal 恢复最新状态。活动目标运行期间，GSD 续接提示会保持待处理，避免两个续接循环互相竞争；请先运行 `/goal pause` 或 `/goal drop`，再运行 `/gsd-next`。没有 `goal_updated` 的主机（包括 OMP 17）仍可使用其余 GSD 集成能力，只跳过这一项可选界面。
+当 OMP 提供 Goal Mode 的 `goal_updated` 事件时（较新的 OMP 主机支持），`gsd-for-omp` 会在 `/gsd-status`、footer、widget 和实时 overlay 中同步目标、状态与 token 预算；它会在 session 启动或重新加载时从 OMP session journal 恢复最新状态。活动目标运行期间，GSD 续接提示会保持待处理，避免两个续接循环互相竞争；请先运行 `/goal pause` 或 `/goal drop`，再运行 `/gsd-next`。没有 `goal_updated` 的主机（包括 OMP 17）仍可使用其余 GSD 集成能力，只跳过这一项可选界面。
 
 ## 校验
 
 ```bash
-gsd-omp doctor
+gsd-for-omp doctor
 ```
 
 健康的安装会报告 `"ok": true`、EoS profile 为 `programmatic-cli`、协议版本为 `1`。
@@ -177,31 +179,31 @@ gsd-omp doctor
 查看完整的 EoS 声明：
 
 ```bash
-gsd-omp descriptor
+gsd-for-omp descriptor
 ```
 
 ## 升级
 
 ```bash
-gsd-omp update
+gsd-for-omp update
 ```
 
 检查 GitHub 上的最新 release，通过 npm 全局 tarball 安装新版本，并重新投影受管的 extension / agents / skills，一步完成。之后重启 OMP。
 
-> **GSD 核心版本**：`gsd-omp update` 会一起升级捆绑的 gsd-core（它是本包的依赖）。但 OMP 的 `~/.omp/agent/gsd-core/` 是 OMP 自带的引擎树（当前 1.7.0-rc.6），不在本插件管理范围内——插件从自身 `node_modules` 解析 gsd-core。若需要 OMP 侧引擎与插件一致，需用 OMP 自己的更新路径（如 `omp update`）。
+> **GSD 核心版本**：`gsd-for-omp update` 会一起升级捆绑的 gsd-core（它是本包的依赖）。但 OMP 的 `~/.omp/agent/gsd-core/` 是 OMP 自带的引擎树（当前 1.7.0-rc.6），不在本插件管理范围内——插件从自身 `node_modules` 解析 gsd-core。若需要 OMP 侧引擎与插件一致，需用 OMP 自己的更新路径（如 `omp update`）。
 
 如果更新检查失败（离线、GitHub 不可达），回退到手动步骤：
 
 ```bash
-gsd-omp uninstall
-npm install --global https://github.com/tchivs/gsd-omp/archive/refs/tags/v1.0.25.tar.gz
-gsd-omp install
+gsd-for-omp uninstall
+npm install --global https://github.com/GManzato/gsd-for-omp/archive/refs/tags/v1.0.25.tar.gz
+gsd-for-omp install
 ```
 
 安装器会拒绝覆盖未托管或已被本地修改的投影文件。仅当确实要替换之前由 GSD 托管的 OMP 文件时，才使用 `--force`：
 
 ```bash
-gsd-omp install --force
+gsd-for-omp install --force
 ```
 
 ## 卸载
@@ -209,8 +211,8 @@ gsd-omp install --force
 先移除托管的 OMP 产物，再卸载拥有安装器的本包：
 
 ```bash
-gsd-omp uninstall
-npm uninstall --global gsd-omp
+gsd-for-omp uninstall
+npm uninstall --global gsd-for-omp
 ```
 
 被修改的托管文件会被保留并报告。仅当确实要删除它们时，才传入 `--force`。
@@ -243,9 +245,9 @@ OMP 与 GSD 都有模型概念,但二者粒度不同,本插件刻意不做桥接
 
 ## 语言环境
 
-宿主 CLI（`gsd-omp install|uninstall|doctor|descriptor`）与 EoS 引导阶段的消息遵循 POSIX 环境变量，按以下顺序解析：
+宿主 CLI（`gsd-for-omp install|uninstall|doctor|descriptor`）与 EoS 引导阶段的消息遵循 POSIX 环境变量，按以下顺序解析：
 
-1. `GSD_OMP_LOCALE` —— 显式覆盖，优先级最高
+1. `GSD_FOR_OMP_LOCALE` —— 显式覆盖，优先级最高
 2. `LC_ALL`
 3. `LC_MESSAGES`
 4. `LANG`
@@ -254,7 +256,7 @@ OMP 与 GSD 都有模型概念,但二者粒度不同,本插件刻意不做桥接
 
 ```bash
 # 无论 shell 语言环境如何，强制输出中文
-GSD_OMP_LOCALE=zh_CN.UTF-8 gsd-omp doctor
+GSD_FOR_OMP_LOCALE=zh_CN.UTF-8 gsd-for-omp doctor
 ```
 
 会话内的 OMP 扩展（`/gsd-*` 命令、状态组件、续接提示）走另一条本地化路径，通过项目 `.planning/config.json` 中的 `response_language` 字段控制。当扩展首次加载一个未设置该字段的 GSD 项目时，会弹出一个一次性的 `简体中文 / English` 选择器。
@@ -284,10 +286,10 @@ GSD_OMP_LOCALE=zh_CN.UTF-8 gsd-omp doctor
 
 安装器会写入：
 
-- `extensions/gsd-omp.ts`
+- `extensions/gsd-for-omp.ts`
 - 投影后的 `agents/gsd-*.md`
 - 投影后的 `skills/gsd-*/SKILL.md`
-- `.gsd-omp-manifest.json`（含所有权哈希）
+- `.gsd-for-omp-manifest.json`（含所有权哈希）
 
 清单文件让升级与卸载具备所有权感知能力。安装后被修改的文件在未加 `--force` 时不会被覆盖或删除。
 
@@ -302,7 +304,7 @@ npm test
 可在不触碰用户 OMP profile 的前提下，执行一次本地隔离安装：
 
 ```bash
-PI_CODING_AGENT_DIR="$(mktemp -d)" node bin/gsd-omp.cjs install
+PI_CODING_AGENT_DIR="$(mktemp -d)" node bin/gsd-for-omp.cjs install
 ```
 
 ## 版权归属

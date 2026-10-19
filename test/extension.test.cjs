@@ -66,7 +66,7 @@ function mockPi() {
 }
 
 test('registers native message renderers and updates the OMP status surface', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-omp-renderer-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-renderer-'));
   try {
     fs.mkdirSync(path.join(root, '.planning'), { recursive: true });
     fs.writeFileSync(path.join(root, '.planning', 'STATE.md'), '# State\\n');
@@ -103,7 +103,7 @@ test('registers native message renderers and updates the OMP status surface', as
 
 
 test('uses askDialog for native continuation choices when select is absent', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-omp-ask-dialog-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-ask-dialog-'));
   try {
     fs.mkdirSync(path.join(root, '.planning'), { recursive: true });
     fs.writeFileSync(path.join(root, '.planning', 'STATE.md'), '# State\\n');
@@ -133,7 +133,7 @@ test('uses askDialog for native continuation choices when select is absent', asy
 });
 
 test('exposes the projected GSD skill root through resources_discover', () => {
-  const runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-omp-resources-'));
+  const runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-resources-'));
   try {
     const skillsRoot = path.join(runtimeRoot, 'skills');
     fs.mkdirSync(skillsRoot);
@@ -357,7 +357,7 @@ test('reports an active Goal Mode instead of claiming idle when stopping GSD', a
 });
 
 test('keeps the extension loadable when a host rejects goal_updated registration', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-omp-goal-legacy-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-goal-legacy-'));
   try {
     const pi = mockPi();
     const registerEvent = pi.on;
@@ -448,7 +448,7 @@ test('opens the native status overlay and can edit the pending action', async ()
 
 
 test('specializes projected skills with native validation, completions, and session setup', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-omp-projected-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-projected-'));
   try {
     const sent = [];
     for (const name of ['gsd-config', 'gsd-review', 'gsd-explore']) {
@@ -471,7 +471,7 @@ test('specializes projected skills with native validation, completions, and sess
 });
 
  test('registers commands, tool, and lifecycle hooks on the OMP ExtensionAPI', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-omp-extension-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-extension-'));
   try {
     const pi = mockPi();
     extension(pi, { runtime: 'omp', runtimeRoot: root });
@@ -497,7 +497,7 @@ test('specializes projected skills with native validation, completions, and sess
   // ~/.claude/agents and reports every GSD agent missing. The extension must
   // export GSD_AGENTS_DIR = <runtimeRoot>/agents so init.progress /
   // init.new-project see the projected agents (research/roadmap etc.).
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-omp-agents-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-agents-'));
   const prior = process.env.GSD_AGENTS_DIR;
   try {
     delete process.env.GSD_AGENTS_DIR;
@@ -516,7 +516,7 @@ test('specializes projected skills with native validation, completions, and sess
 });
 
 test('uses OMP-managed timers for gsd_invoke progress updates', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-omp-managed-timer-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-managed-timer-'));
   try {
     const pi = mockPi();
     extension(pi, { runtime: 'omp', runtimeRoot: root });
@@ -554,7 +554,7 @@ test('uses OMP-managed timers for gsd_invoke progress updates', async () => {
 });
 
 test('phase argument completion reads the active command context cwd', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-omp-completion-cwd-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-completion-cwd-'));
   try {
     fs.mkdirSync(path.join(root, '.planning'), { recursive: true });
     fs.writeFileSync(
@@ -571,7 +571,7 @@ test('phase argument completion reads the active command context cwd', () => {
 });
 
 test('gsd_invoke resolves promptly when its abort signal is already set', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-omp-abort-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-abort-'));
   try {
     const pi = mockPi();
     extension(pi, { runtime: 'omp', runtimeRoot: root });
@@ -592,7 +592,7 @@ test('gsd_invoke resolves promptly when its abort signal is already set', async 
 });
 
 test('gsd slash command routes empty input to the GSD CLI help surface', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-omp-gsd-help-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-gsd-help-'));
   try {
     const sent = [];
     const pi = mockPi();
@@ -608,7 +608,7 @@ test('gsd slash command routes empty input to the GSD CLI help surface', async (
 });
 
 function gsdProjectRoot() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-omp-task-track-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-task-track-'));
   fs.mkdirSync(path.join(root, '.planning'), { recursive: true });
   fs.writeFileSync(path.join(root, '.planning', 'STATE.md'), '# State\n');
   return root;
@@ -877,7 +877,7 @@ test('keeps queued native jobs active and tolerates non-array tool content', asy
 });
 
 test('status reads the active workstream planning paths', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-omp-workstream-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-workstream-'));
   const workstreamPath = path.join(root, '.planning', 'workstreams', 'demo');
   const priorWorkstream = process.env.GSD_WORKSTREAM;
   try {
@@ -989,7 +989,7 @@ test('uses localized copy for detected empty-state and invalid lifecycle input',
 
 test('blocks phase writes through symlinked planning paths and empty LSP edits', async () => {
   const root = gsdProjectRoot();
-  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-omp-guard-outside-'));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-guard-outside-'));
   try {
     fs.symlinkSync(outside, path.join(root, '.planning', 'linked'), 'dir');
     const pi = mockPi();
@@ -1053,7 +1053,7 @@ test('keeps a duplicate task name active until every owner settles', async () =>
 });
 
 test('does not route stale task results from a non-project directory', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-omp-stale-recovery-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-stale-recovery-'));
   try {
     fs.mkdirSync(path.join(root, '.planning'), { recursive: true });
     fs.writeFileSync(

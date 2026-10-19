@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { doctor, install, uninstall, update, parseArgs, compareVersions } = require('../bin/gsd-omp.cjs');
+const { doctor, install, uninstall, update, parseArgs, compareVersions } = require('../bin/gsd-for-omp.cjs');
 
 // Pin locale to English so the ownership-error regex stays deterministic
 // regardless of the dev shell's LANG.
@@ -21,15 +21,15 @@ function sha256(value) {
 }
 
  test('installs, verifies, and uninstalls owned OMP artifacts', () => {
-  const root = temporaryRoot('gsd-omp-install');
+  const root = temporaryRoot('gsd-for-omp-install');
   try {
     const result = install({ root });
     assert.equal(result.protocolVersion, 1);
     assert.equal(result.installed > 50, true);
-    assert.equal(fs.existsSync(path.join(root, 'extensions', 'gsd-omp.ts')), true);
+    assert.equal(fs.existsSync(path.join(root, 'extensions', 'gsd-for-omp.ts')), true);
     assert.equal(fs.existsSync(path.join(root, 'agents', 'gsd-executor.md')), true);
     assert.equal(fs.existsSync(path.join(root, 'skills', 'gsd-plan-phase', 'SKILL.md')), true);
-    const extensionContent = fs.readFileSync(path.join(root, 'extensions', 'gsd-omp.ts'), 'utf8');
+    const extensionContent = fs.readFileSync(path.join(root, 'extensions', 'gsd-for-omp.ts'), 'utf8');
     assert.equal(extensionContent.includes(JSON.stringify(root)), true);
     const projectedSkill = fs.readFileSync(path.join(root, 'skills', 'gsd-plan-phase', 'SKILL.md'), 'utf8');
     assert.equal(projectedSkill.includes(path.join(root, 'agents')), true);
@@ -43,27 +43,27 @@ function sha256(value) {
     const removed = uninstall({ root });
     assert.equal(removed.removed, result.installed);
     assert.deepEqual(removed.skipped, []);
-    assert.equal(fs.existsSync(path.join(root, '.gsd-omp-manifest.json')), false);
+    assert.equal(fs.existsSync(path.join(root, '.gsd-for-omp-manifest.json')), false);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
 test('removes the stale legacy CJS extension during reinstall', () => {
-  const root = temporaryRoot('gsd-omp-legacy-extension');
+  const root = temporaryRoot('gsd-for-omp-legacy-extension');
   const legacyPath = path.join(root, 'extensions', 'gsd-omp.cjs');
   try {
     install({ root });
     fs.writeFileSync(legacyPath, '// GSD extension for Pi-compatible hosts\n');
     install({ root });
     assert.equal(fs.existsSync(legacyPath), false);
-    assert.equal(fs.existsSync(path.join(root, 'extensions', 'gsd-omp.ts')), true);
+    assert.equal(fs.existsSync(path.join(root, 'extensions', 'gsd-for-omp.ts')), true);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
 
  test('refuses to overwrite or remove a modified managed file', () => {
-  const root = temporaryRoot('gsd-omp-ownership');
+  const root = temporaryRoot('gsd-for-omp-ownership');
   try {
     install({ root });
     const target = path.join(root, 'agents', 'gsd-executor.md');
@@ -72,7 +72,7 @@ test('removes the stale legacy CJS extension during reinstall', () => {
     const result = uninstall({ root });
     assert.deepEqual(result.skipped, [path.join('agents', 'gsd-executor.md')]);
     assert.equal(fs.existsSync(target), true);
-    assert.equal(fs.existsSync(path.join(root, '.gsd-omp-manifest.json')), true);
+    assert.equal(fs.existsSync(path.join(root, '.gsd-for-omp-manifest.json')), true);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -80,13 +80,13 @@ test('removes the stale legacy CJS extension during reinstall', () => {
 
 test('update reports up-to-date when the local version matches the latest GitHub release', () => {
   const packageJson = require('../package.json');
-  const root = temporaryRoot('gsd-omp-update');
+  const root = temporaryRoot('gsd-for-omp-update');
   try {
     install({ root });
     // Inject a stub instead of hitting the live GitHub API.
     const result = update({
       root,
-      latestRelease: () => ({ tag_name: `v${packageJson.version}`, tarball_url: 'https://api.github.com/repos/tchivs/gsd-omp/tarball/x' }),
+      latestRelease: () => ({ tag_name: `v${packageJson.version}`, tarball_url: 'https://api.github.com/repos/GManzato/gsd-for-omp/tarball/x' }),
     });
     assert.equal(result.upToDate, true);
     assert.equal(result.current, packageJson.version);
@@ -97,10 +97,10 @@ test('update reports up-to-date when the local version matches the latest GitHub
 
 test('refreshes a stale runtime projection when the package matches the latest release', () => {
   const packageJson = require('../package.json');
-  const root = temporaryRoot('gsd-omp-stale-update');
+  const root = temporaryRoot('gsd-for-omp-stale-update');
   try {
     install({ root });
-    const manifestPath = path.join(root, '.gsd-omp-manifest.json');
+    const manifestPath = path.join(root, '.gsd-for-omp-manifest.json');
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     manifest.version = '1.0.18';
     fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
@@ -136,23 +136,23 @@ test('rejects malformed release metadata before attempting an update', () => {
 });
 
 test('rejects unsafe manifest paths and invalid hashes', () => {
-  const root = temporaryRoot('gsd-omp-invalid-manifest');
+  const root = temporaryRoot('gsd-for-omp-invalid-manifest');
   try {
     fs.writeFileSync(
-      path.join(root, '.gsd-omp-manifest.json'),
+      path.join(root, '.gsd-for-omp-manifest.json'),
       JSON.stringify({ files: [{ path: '../outside', sha256: '0'.repeat(64) }] }),
     );
-    assert.throws(() => doctor({ root }), /Invalid gsd-omp manifest/);
-    assert.throws(() => uninstall({ root }), /Invalid gsd-omp manifest/);
+    assert.throws(() => doctor({ root }), /Invalid gsd-for-omp manifest/);
+    assert.throws(() => uninstall({ root }), /Invalid gsd-for-omp manifest/);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
 
 test('refuses to replace a managed artifact path occupied by a directory', () => {
-  const root = temporaryRoot('gsd-omp-directory-artifact');
+  const root = temporaryRoot('gsd-for-omp-directory-artifact');
   try {
-    fs.mkdirSync(path.join(root, 'extensions', 'gsd-omp.ts'), { recursive: true });
+    fs.mkdirSync(path.join(root, 'extensions', 'gsd-for-omp.ts'), { recursive: true });
     assert.throws(() => install({ root }), /Refusing to overwrite unmanaged or modified file/);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
@@ -160,9 +160,9 @@ test('refuses to replace a managed artifact path occupied by a directory', () =>
 });
 
 test('does not follow a symlinked artifact parent during install or uninstall', () => {
-  const root = temporaryRoot('gsd-omp-symlink-root');
-  const outside = temporaryRoot('gsd-omp-symlink-outside');
-  const outsideArtifact = path.join(outside, 'gsd-omp.ts');
+  const root = temporaryRoot('gsd-for-omp-symlink-root');
+  const outside = temporaryRoot('gsd-for-omp-symlink-outside');
+  const outsideArtifact = path.join(outside, 'gsd-for-omp.ts');
   fs.writeFileSync(outsideArtifact, 'keep me\n');
   try {
     fs.symlinkSync(outside, path.join(root, 'extensions'), 'dir');
@@ -172,10 +172,10 @@ test('does not follow a symlinked artifact parent during install or uninstall', 
     fs.rmSync(path.join(root, 'extensions'), { recursive: true, force: true });
     fs.symlinkSync(outside, path.join(root, 'extensions'), 'dir');
     fs.writeFileSync(
-      path.join(root, '.gsd-omp-manifest.json'),
+      path.join(root, '.gsd-for-omp-manifest.json'),
       JSON.stringify({ files: [{ path: 'extensions/owned', sha256: '0'.repeat(64) }] }),
     );
-    assert.throws(() => uninstall({ root, force: true }), /Invalid gsd-omp manifest/);
+    assert.throws(() => uninstall({ root, force: true }), /Invalid gsd-for-omp manifest/);
     assert.equal(fs.existsSync(outsideArtifact), true);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
@@ -184,12 +184,12 @@ test('does not follow a symlinked artifact parent during install or uninstall', 
 });
 
 test('removes unchanged stale artifacts when refreshing a projection', () => {
-  const root = temporaryRoot('gsd-omp-stale-artifact');
+  const root = temporaryRoot('gsd-for-omp-stale-artifact');
   const staleRelativePath = path.join('skills', 'obsolete', 'SKILL.md');
   const staleContent = 'obsolete projection\n';
   try {
     const installed = install({ root });
-    const manifestPath = path.join(root, '.gsd-omp-manifest.json');
+    const manifestPath = path.join(root, '.gsd-for-omp-manifest.json');
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     const staleTarget = path.join(root, staleRelativePath);
     fs.mkdirSync(path.dirname(staleTarget), { recursive: true });
@@ -208,12 +208,12 @@ test('removes unchanged stale artifacts when refreshing a projection', () => {
 });
 
 test('preserves modified stale artifacts instead of dropping ownership', () => {
-  const root = temporaryRoot('gsd-omp-modified-stale');
+  const root = temporaryRoot('gsd-for-omp-modified-stale');
   const staleRelativePath = path.join('skills', 'obsolete', 'SKILL.md');
   const original = 'obsolete projection\n';
   try {
     install({ root });
-    const manifestPath = path.join(root, '.gsd-omp-manifest.json');
+    const manifestPath = path.join(root, '.gsd-for-omp-manifest.json');
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     const staleTarget = path.join(root, staleRelativePath);
     fs.mkdirSync(path.dirname(staleTarget), { recursive: true });
@@ -231,15 +231,15 @@ test('preserves modified stale artifacts instead of dropping ownership', () => {
 });
 
 test('keeps the manifest when force cannot remove a directory placeholder', () => {
-  const root = temporaryRoot('gsd-omp-directory-uninstall');
-  const target = path.join(root, 'extensions', 'gsd-omp.ts');
+  const root = temporaryRoot('gsd-for-omp-directory-uninstall');
+  const target = path.join(root, 'extensions', 'gsd-for-omp.ts');
   try {
     install({ root });
     fs.rmSync(target, { force: true });
     fs.mkdirSync(target);
     const result = uninstall({ root, force: true });
-    assert.deepEqual(result.skipped, [path.join('extensions', 'gsd-omp.ts')]);
-    assert.equal(fs.existsSync(path.join(root, '.gsd-omp-manifest.json')), true);
+    assert.deepEqual(result.skipped, [path.join('extensions', 'gsd-for-omp.ts')]);
+    assert.equal(fs.existsSync(path.join(root, '.gsd-for-omp-manifest.json')), true);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

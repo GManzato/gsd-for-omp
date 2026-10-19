@@ -10,9 +10,9 @@ const repositoryRoot = path.resolve(__dirname, '..');
 
 const packageManifest = require(path.join(repositoryRoot, 'package.json'));
 const gsdCoreRange = packageManifest.dependencies['@opengsd/gsd-core'];
-const runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-omp-host-smoke-'));
+const runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-host-smoke-'));
 const ompBin = process.env.OMP_BIN || 'omp';
-const gsdOmpBin = process.env.GSD_OMP_BIN;
+const gsdForOmpBin = process.env.GSD_FOR_OMP_BIN;
 const hostEnvironment = {
   ...process.env,
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || 'not-a-real-key',
@@ -37,9 +37,9 @@ function run(command, args, options = {}) {
 }
 
 function runPlugin(args) {
-  return gsdOmpBin
-    ? run(gsdOmpBin, args)
-    : run(process.execPath, [path.join(repositoryRoot, 'bin', 'gsd-omp.cjs'), ...args]);
+  return gsdForOmpBin
+    ? run(gsdForOmpBin, args)
+    : run(process.execPath, [path.join(repositoryRoot, 'bin', 'gsd-for-omp.cjs'), ...args]);
 }
 
 function parseJson(output, label) {
@@ -83,7 +83,7 @@ function parseRpcFrames(output) {
     .map((line) => parseJson(line, 'OMP RPC'));
 }
 function exposesGsdInvoke(frames) {
-  const stateResponse = frames.find((frame) => frame.id === 'gsd-omp-host-smoke-state');
+  const stateResponse = frames.find((frame) => frame.id === 'gsd-for-omp-host-smoke-state');
   const systemPrompt = Array.isArray(stateResponse?.data?.systemPrompt)
     ? stateResponse.data.systemPrompt.join('\n')
     : String(stateResponse?.data?.systemPrompt || '');
@@ -97,7 +97,7 @@ function exposesGsdInvoke(frames) {
 
 
 try {
-  const install = parseJson(runPlugin(['install', '--root', runtimeRoot, '--json']), 'gsd-omp install');
+  const install = parseJson(runPlugin(['install', '--root', runtimeRoot, '--json']), 'gsd-for-omp install');
   assert.equal(install.protocolVersion, 1);
   assert.ok(
     satisfiesCaretRange(install.coreVersion, gsdCoreRange),
@@ -105,13 +105,13 @@ try {
   );
   assert.ok(install.installed > 50, `expected projected artifacts, received ${install.installed}`);
 
-  const doctor = parseJson(runPlugin(['doctor', '--root', runtimeRoot, '--json']), 'gsd-omp doctor');
+  const doctor = parseJson(runPlugin(['doctor', '--root', runtimeRoot, '--json']), 'gsd-for-omp doctor');
   assert.equal(doctor.ok, true);
   assert.equal(doctor.profile, 'programmatic-cli');
   assert.deepEqual(doctor.missing, []);
   assert.deepEqual(doctor.modified, []);
 
-  const descriptor = parseJson(runPlugin(['descriptor', '--json']), 'gsd-omp descriptor');
+  const descriptor = parseJson(runPlugin(['descriptor', '--json']), 'gsd-for-omp descriptor');
   assert.equal(descriptor.protocolVersion, 1);
   assert.equal(descriptor.profile, 'programmatic-cli');
   assert.equal(descriptor.axes.transport, 'native-extension');
@@ -121,7 +121,7 @@ try {
   const model = modelCatalog.models?.find((candidate) => candidate.selector);
   assert.ok(model, 'OMP did not expose a selectable OpenAI model for the host smoke test');
 
-  const stateRequestId = 'gsd-omp-host-smoke-state';
+  const stateRequestId = 'gsd-for-omp-host-smoke-state';
   const rpcArgs = [
     '--mode', 'rpc',
     '--no-session',
@@ -170,7 +170,7 @@ try {
     );
   }
 
-  const uninstall = parseJson(runPlugin(['uninstall', '--root', runtimeRoot, '--json']), 'gsd-omp uninstall');
+  const uninstall = parseJson(runPlugin(['uninstall', '--root', runtimeRoot, '--json']), 'gsd-for-omp uninstall');
   assert.equal(uninstall.removed, install.installed);
   assert.deepEqual(uninstall.skipped, []);
 

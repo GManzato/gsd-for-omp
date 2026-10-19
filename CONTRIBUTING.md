@@ -1,6 +1,6 @@
-# Contributing to gsd-omp
+# Contributing to gsd-for-omp
 
-Thank you for contributing to `gsd-omp`, an MIT-licensed, independently maintained Oh My Pi host plugin for the GSD Embeddable Orchestration System. See [LICENSE](LICENSE) for the full license text.
+Thank you for contributing to `gsd-for-omp`, an MIT-licensed, independently maintained Oh My Pi host plugin for the GSD Embeddable Orchestration System. See [LICENSE](LICENSE) for the full license text.
 
 ## Development environment
 
@@ -11,8 +11,8 @@ Thank you for contributing to `gsd-omp`, an MIT-licensed, independently maintain
 Clone the repository and install its development dependency:
 
 ```bash
-git clone https://github.com/tchivs/gsd-omp.git
-cd gsd-omp
+git clone https://github.com/GManzato/gsd-for-omp.git
+cd gsd-for-omp
 npm install
 ```
 
@@ -31,10 +31,10 @@ Run the host smoke test against both OMP versions exercised by CI (`17.0.3` and 
 package_tarball="$(npm pack --silent --ignore-scripts)"
 npm install --global "@oh-my-pi/pi-coding-agent@17.0.3"
 npm install --global "./${package_tarball}"
-OMP_VERSION=17.0.3 GSD_OMP_BIN=gsd-omp node scripts/host-smoke.cjs
+OMP_VERSION=17.0.3 GSD_FOR_OMP_BIN=gsd-for-omp node scripts/host-smoke.cjs
 
 npm install --global "@oh-my-pi/pi-coding-agent@latest"
-OMP_VERSION=latest GSD_OMP_BIN=gsd-omp node scripts/host-smoke.cjs
+OMP_VERSION=latest GSD_FOR_OMP_BIN=gsd-for-omp node scripts/host-smoke.cjs
 ```
 
 The smoke script creates and removes its own temporary `PI_CODING_AGENT_DIR`. `npm pack` produces a local tarball; do not commit that file.

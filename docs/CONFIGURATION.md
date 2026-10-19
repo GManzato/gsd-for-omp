@@ -3,11 +3,11 @@
 
 ## Scope
 
-This document covers configuration that affects the `gsd-omp` installer and its OMP extension: runtime-root selection, projected-agent lookup, shell and project-session localization, installer arguments, manifest ownership, and optional OMP Goal Mode coordination. It targets maintainers and operators of the current `gsd-omp` release. GSD Core's complete project configuration schema remains owned by `@opengsd/gsd-core`; only fields read by this plugin are described here.
+This document covers configuration that affects the `gsd-for-omp` installer and its OMP extension: runtime-root selection, projected-agent lookup, shell and project-session localization, installer arguments, manifest ownership, and optional OMP Goal Mode coordination. It targets maintainers and operators of the current `gsd-for-omp` release. GSD Core's complete project configuration schema remains owned by `@opengsd/gsd-core`; only fields read by this plugin are described here.
 
 Relevant implementation paths:
 
-- `bin/gsd-omp.cjs` — CLI parsing, runtime root, manifest validation, ownership checks, and update behavior.
+- `bin/gsd-for-omp.cjs` — CLI parsing, runtime root, manifest validation, ownership checks, and update behavior.
 - `src/extension.cjs` — OMP runtime root/agent lookup, `gsd-tools` environment, project config reads, status, lifecycle events, and Goal Mode coordination.
 - `src/locale.cjs` — POSIX locale precedence and normalization.
 - `src/locales/en.cjs` and `src/locales/zh-CN.cjs` — shell/EoS message dictionaries.
@@ -16,7 +16,7 @@ Relevant implementation paths:
 
 ## Runtime root
 
-The runtime root is the directory into which the installer writes OMP artifacts. Resolution is performed by `runtimeRoot()` in `bin/gsd-omp.cjs`:
+The runtime root is the directory into which the installer writes OMP artifacts. Resolution is performed by `runtimeRoot()` in `bin/gsd-for-omp.cjs`:
 
 1. The `--root PATH` CLI option, when supplied, wins.
 2. Otherwise `PI_CODING_AGENT_DIR` is used.
@@ -26,8 +26,8 @@ The path is resolved to an absolute path. A normal installed layout is:
 
 ```text
 <runtime-root>/
-├── .gsd-omp-manifest.json
-├── extensions/gsd-omp.ts
+├── .gsd-for-omp-manifest.json
+├── extensions/gsd-for-omp.ts
 ├── agents/gsd-*.md
 └── skills/gsd-*/SKILL.md
 ```
@@ -44,12 +44,12 @@ The extension derives its default agent directory as `<runtime-root>/agents`. If
 |---|---|---|---|
 | `PI_CODING_AGENT_DIR` | Optional | `~/.omp/agent` | Installer runtime root when `--root` is not supplied. The host smoke script sets this to a temporary directory. |
 | `GSD_AGENTS_DIR` | Optional | `<runtime-root>/agents` | Directory passed to every extension-launched `gsd-tools.cjs` process. An existing value is preserved; otherwise the extension exports its derived default. |
-| `GSD_OMP_LOCALE` | Optional | Next POSIX locale or `en` | Explicit locale for installer CLI and EoS bootstrap messages. Values beginning with `zh` normalize to `zh-CN`; all other values normalize to `en`. |
-| `LC_ALL` | Optional | Next POSIX locale or `en` | First POSIX fallback after `GSD_OMP_LOCALE`. |
-| `LC_MESSAGES` | Optional | Next POSIX locale or `en` | Second POSIX fallback after `GSD_OMP_LOCALE` and `LC_ALL`. |
-| `LANG` | Optional | `en` | Final POSIX locale fallback after `GSD_OMP_LOCALE`, `LC_ALL`, and `LC_MESSAGES`. |
+| `GSD_FOR_OMP_LOCALE` | Optional | Next POSIX locale or `en` | Explicit locale for installer CLI and EoS bootstrap messages. Values beginning with `zh` normalize to `zh-CN`; all other values normalize to `en`. |
+| `LC_ALL` | Optional | Next POSIX locale or `en` | First POSIX fallback after `GSD_FOR_OMP_LOCALE`. |
+| `LC_MESSAGES` | Optional | Next POSIX locale or `en` | Second POSIX fallback after `GSD_FOR_OMP_LOCALE` and `LC_ALL`. |
+| `LANG` | Optional | `en` | Final POSIX locale fallback after `GSD_FOR_OMP_LOCALE`, `LC_ALL`, and `LC_MESSAGES`. |
 
-The effective shell/EoS locale is selected in this exact order: `GSD_OMP_LOCALE`, `LC_ALL`, `LC_MESSAGES`, `LANG`. Supported dictionaries are `en` and `zh-CN`; a value such as `zh_CN.UTF-8` selects `zh-CN`, while an unknown or empty value falls back to English. This locale does not override a project's in-session language setting.
+The effective shell/EoS locale is selected in this exact order: `GSD_FOR_OMP_LOCALE`, `LC_ALL`, `LC_MESSAGES`, `LANG`. Supported dictionaries are `en` and `zh-CN`; a value such as `zh_CN.UTF-8` selects `zh-CN`, while an unknown or empty value falls back to English. This locale does not override a project's in-session language setting.
 
 ### Update and smoke-test variables
 
@@ -58,7 +58,7 @@ The effective shell/EoS locale is selected in this exact order: `GSD_OMP_LOCALE`
 | `GITHUB_TOKEN` | Optional | Unset | If present, the update release lookup sends it as a Bearer token. It is not required for normal public-release lookup. |
 | `GH_TOKEN` | Optional | Unset | Fallback token name used when `GITHUB_TOKEN` is not present. |
 | `OMP_BIN` | Smoke-test only | `omp` | Executable selected by `scripts/host-smoke.cjs` to launch OMP. Not read by the installed extension. |
-| `GSD_OMP_BIN` | Smoke-test only | Run `bin/gsd-omp.cjs` with the current Node executable | Optional installer executable selected by `scripts/host-smoke.cjs`. |
+| `GSD_FOR_OMP_BIN` | Smoke-test only | Run `bin/gsd-for-omp.cjs` with the current Node executable | Optional installer executable selected by `scripts/host-smoke.cjs`. |
 | `OMP_VERSION` | CI/smoke-test only | `local` in output | Labels the OMP version in the host-smoke result and selects the legacy OMP 17 fallback branch. It is not an extension configuration setting. |
 | `OPENAI_API_KEY` | Smoke-test only | `not-a-real-key` for host startup | The smoke script passes an existing key through, or supplies a placeholder so host startup can be exercised without a real request. Do not use the placeholder for an actual model call. |
 
@@ -96,7 +96,7 @@ To select Simplified Chinese explicitly, use `"response_language": "Simplified C
 The executable accepts one command followed by common options:
 
 ```text
-gsd-omp [install|update|uninstall|doctor|descriptor] [--root <path>] [--force] [--json]
+gsd-for-omp [install|update|uninstall|doctor|descriptor] [--root <path>] [--force] [--json]
 ```
 
 With no command, the CLI behaves as `install`. `--help`/`-h` prints usage. `--root` requires a following path and is normalized to an absolute path; a missing value or unknown argument is an error. `--json` prints the command result as JSON. The supported commands are:
@@ -116,23 +116,23 @@ Examples:
 ```bash
 # Use a disposable profile; no files are written to the normal OMP root.
 root="$(mktemp -d)"
-PI_CODING_AGENT_DIR="$root" gsd-omp install --json
-PI_CODING_AGENT_DIR="$root" gsd-omp doctor --json
-PI_CODING_AGENT_DIR="$root" gsd-omp descriptor --json
-PI_CODING_AGENT_DIR="$root" gsd-omp uninstall --json
+PI_CODING_AGENT_DIR="$root" gsd-for-omp install --json
+PI_CODING_AGENT_DIR="$root" gsd-for-omp doctor --json
+PI_CODING_AGENT_DIR="$root" gsd-for-omp descriptor --json
+PI_CODING_AGENT_DIR="$root" gsd-for-omp uninstall --json
 rm -rf "$root"
 ```
 
 ```bash
 # Use an explicit root; this overrides PI_CODING_AGENT_DIR.
-gsd-omp install --root "$HOME/.omp/agent" --json
+gsd-for-omp install --root "$HOME/.omp/agent" --json
 ```
 
 Do not put access tokens or other secrets in the generated wrapper, projected skills, or manifest. If update authentication is needed, provide `GITHUB_TOKEN` or `GH_TOKEN` through the process environment/secret manager rather than writing it to project files. The update endpoint and latest-release fallback are external GitHub infrastructure defined by `githubLatestRelease()`; confirm network and organization policy before relying on them. <!-- VERIFY: GitHub is an external release service; confirm network and organization policy before relying on it. -->
 
 ## Manifest ownership and `--force`
 
-`.gsd-omp-manifest.json` is the ownership record, not a general OMP configuration file. The installer records SHA-256 hashes for every generated file. On reinstall, stale manifest entries and recognized legacy extension files are considered for removal, but each target is checked first. A target is safe only when it is a regular file with the expected hash; path components must be real directories, not symlinks.
+`.gsd-for-omp-manifest.json` is the ownership record, not a general OMP configuration file. The installer records SHA-256 hashes for every generated file. On reinstall, stale manifest entries and recognized legacy extension files are considered for removal, but each target is checked first. A target is safe only when it is a regular file with the expected hash; path components must be real directories, not symlinks.
 
 Normal behavior is intentionally conservative:
 
@@ -145,12 +145,12 @@ Normal behavior is intentionally conservative:
 Use `--force` only when the operator has reviewed and intentionally wants to replace or delete local changes in GSD-owned projections:
 
 ```bash
-gsd-omp install --force
+gsd-for-omp install --force
 # or, after reviewing the projected files:
-gsd-omp uninstall --force
+gsd-for-omp uninstall --force
 ```
 
-A safer refresh is to run `gsd-omp doctor --json` first and inspect `missing`/`modified`; do not use `--force` merely to silence a warning.
+A safer refresh is to run `gsd-for-omp doctor --json` first and inspect `missing`/`modified`; do not use `--force` merely to silence a warning.
 
 ## OMP Goal Mode coordination
 
@@ -174,8 +174,8 @@ Use an isolated root while testing installer changes or a new OMP version:
 set -eu
 root="$(mktemp -d)"
 trap 'rm -rf "$root"' EXIT
-PI_CODING_AGENT_DIR="$root" GSD_OMP_LOCALE=en gsd-omp install --json
-PI_CODING_AGENT_DIR="$root" GSD_OMP_LOCALE=en gsd-omp doctor --json
+PI_CODING_AGENT_DIR="$root" GSD_FOR_OMP_LOCALE=en gsd-for-omp install --json
+PI_CODING_AGENT_DIR="$root" GSD_FOR_OMP_LOCALE=en gsd-for-omp doctor --json
 ```
 
 Use a separate, explicit agent directory only when the projected agents are managed there already:
@@ -197,7 +197,7 @@ For a project-local language override without changing the shell's CLI language:
 For shell-only Chinese installer output:
 
 ```bash
-GSD_OMP_LOCALE=zh_CN.UTF-8 gsd-omp doctor --json
+GSD_FOR_OMP_LOCALE=zh_CN.UTF-8 gsd-for-omp doctor --json
 ```
 
 ## Fixed adapter settings
