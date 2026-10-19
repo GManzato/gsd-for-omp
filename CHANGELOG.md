@@ -4,6 +4,10 @@ All notable changes to `gsd-for-omp` are recorded here in [Keep a Changelog](htt
 
 ## [Unreleased]
 
+### Security
+
+- Updated the bundled `@opengsd/gsd-core` dependency to `^1.18.0` and refreshed its transitive dependencies to clear all open advisories: `@modelcontextprotocol/sdk` 1.32.1, `hono` 4.13.13, `@hono/node-server` 2.1.5, `fast-uri` 3.1.8, `ip-address` 10.7.4, `proxy-addr` 2.0.8, and `qs` 6.16.1. The exact `ip-address` 10.3.1 override was removed: it held the package at a vulnerable version, and the normal range now resolves to a patched release.
+
 ## [1.1.0] - 2026-10-19
 
 ### Changed
