@@ -13,8 +13,8 @@ module.exports = {
   'cli.error.invalidManifest': 'Invalid gsd-for-omp manifest at {path}: {message}',
   'cli.error.unsupportedCore': 'gsd-for-omp requires @opengsd/gsd-core >={minimum}; found {version}',
   'cli.error.refusingOverwrite': 'Refusing to overwrite unmanaged or modified file: {path} (rerun with --force to replace GSD-owned projections)',
-  'cli.error.updateCheckFailed': 'gsd-for-omp: could not check for updates (GitHub API unreachable or returned no release)',
-  'cli.error.updateFailed': 'gsd-for-omp: update failed — npm install did not exit cleanly; run the tarball URL manually and then `gsd-for-omp install`',
+  'cli.error.updateCheckFailed': 'gsd-for-omp: could not check for updates (npm registry unreachable or returned no version); run `npm install --global gsd-for-omp@latest` and then `gsd-for-omp install`',
+  'cli.error.updateFailed': 'gsd-for-omp: update failed — npm install did not exit cleanly; run `npm install --global gsd-for-omp@latest` manually and then `gsd-for-omp install`',
   'cli.error.updateProjectionFailed': 'gsd-for-omp: update installed the new package but could not re-project OMP files; run `gsd-for-omp install` manually',
 
   'eos.error.unexpectedProfile': 'gsd-for-omp: EoS negotiation produced {profile}, expected programmatic-cli',

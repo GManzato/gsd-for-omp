@@ -17,9 +17,7 @@ const LEGACY_EXTENSION_PATHS = Object.freeze([
   path.join('extensions', 'gsd-omp.cjs.bak-mutable-default'),
 ]);
 const LEGACY_EXTENSION_MARKER = 'GSD extension for Pi-compatible hosts';
-const GITHUB_REPO = 'GManzato/gsd-for-omp';
-const RELEASE_API = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
-const RELEASE_PAGE = `https://github.com/${GITHUB_REPO}/releases/latest`;
+const PACKAGE_NAME = 'gsd-for-omp';
 const MIN_GSD_CORE = packageJson.engines.gsd.replace(/^>=/, '');
 
 function sha256(content) {
@@ -27,7 +25,7 @@ function sha256(content) {
 }
 const SHA256_PATTERN = /^[a-f0-9]{64}$/i;
 
-function normalizedReleaseVersion(value) {
+function normalizedVersion(value) {
   const match = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(String(value ?? '').trim());
   return match ? `${Number(match[1])}.${Number(match[2])}.${Number(match[3])}` : null;
 }
@@ -151,41 +149,13 @@ function parseArgs(argv) {
   return { command, root, force, json };
 }
 
-function githubLatestRelease() {
-  const script = `
-const apiUrl = ${JSON.stringify(RELEASE_API)};
-const latestPageUrl = ${JSON.stringify(RELEASE_PAGE)};
-const headers = { 'User-Agent': 'gsd-for-omp', Accept: 'application/vnd.github+json' };
-const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-if (token) headers.Authorization = \`Bearer \${token}\`;
-
-async function resolve() {
-  const apiResponse = await fetch(apiUrl, { headers });
-  if (apiResponse.ok) {
-    const release = await apiResponse.json();
-    if (release.tag_name) {
-      process.stdout.write(JSON.stringify({ tag_name: release.tag_name, tarball_url: release.tarball_url }));
-      return;
-    }
-  }
-
-  const pageResponse = await fetch(latestPageUrl, {
-    redirect: 'manual',
-    headers: { 'User-Agent': 'gsd-for-omp' },
-  });
-  const location = pageResponse.headers.get('location') || '';
-  const match = location.match(/\\/releases\\/tag\\/(v\\d+\\.\\d+\\.\\d+)$/);
-  if (!match) throw new Error('latest release could not be resolved');
-  process.stdout.write(JSON.stringify({ tag_name: match[1] }));
-}
-
-resolve().catch(() => process.exit(1));
-`;
-  const res = spawnSync(process.execPath, ['-e', script], {
+function npmLatestVersion() {
+  const res = spawnSync('npm', ['view', PACKAGE_NAME, 'version', '--json'], {
     encoding: 'utf8',
-    timeout: 15000,
+    stdio: ['ignore', 'pipe', 'ignore'],
+    timeout: 30000,
   });
-  if (res.status !== 0) throw new Error(t('cli.error.updateCheckFailed'));
+  if (res.error || res.status !== 0) throw new Error(t('cli.error.updateCheckFailed'));
   try {
     return JSON.parse(res.stdout);
   } catch {
@@ -193,10 +163,9 @@ resolve().catch(() => process.exit(1));
   }
 }
 
-function update({ root: rootOverride, force = false, latestRelease, json = false } = {}) {
-  const provider = latestRelease === undefined ? githubLatestRelease : latestRelease;
-  const release = typeof provider === 'function' ? provider() : null;
-  const latest = normalizedReleaseVersion(release?.tag_name);
+function update({ root: rootOverride, force = false, latestVersion, json = false } = {}) {
+  const provider = latestVersion === undefined ? npmLatestVersion : latestVersion;
+  const latest = normalizedVersion(typeof provider === 'function' ? provider() : null);
   if (!latest) throw new Error(t('cli.error.updateCheckFailed'));
   const root = runtimeRoot(rootOverride);
   const manifest = readManifest(root);
@@ -209,8 +178,7 @@ function update({ root: rootOverride, force = false, latestRelease, json = false
     install({ root: rootOverride, force });
     return { updated: true, from: manifest?.version || null, to: packageJson.version, root };
   }
-  const tarball = release.tarball_url || `https://github.com/${GITHUB_REPO}/archive/refs/tags/v${latest}.tar.gz`;
-  const npmArgs = ['install', '--global', tarball];
+  const npmArgs = ['install', '--global', `${PACKAGE_NAME}@${latest}`];
   const res = spawnSync('npm', npmArgs, { encoding: 'utf8', stdio: json ? ['ignore', 'ignore', 'inherit'] : 'inherit', timeout: 300000 });
   if (res.status !== 0) throw new Error(t('cli.error.updateFailed'));
 
@@ -515,9 +483,10 @@ if (require.main === module) {
   try {
     process.exitCode = main();
   } catch (error) {
-    process.stderr.write(`gsd-for-omp: ${error.message}\n`);
+    const message = String(error.message);
+    process.stderr.write(`${message.startsWith('gsd-for-omp') ? message : `gsd-for-omp: ${message}`}\n`);
     process.exitCode = 1;
   }
 }
 
-module.exports = { descriptor, doctor, install, main, parseArgs, runtimeRoot, uninstall, update, githubLatestRelease, globalPrefix, compareVersions };
+module.exports = { descriptor, doctor, install, main, parseArgs, runtimeRoot, uninstall, update, compareVersions };

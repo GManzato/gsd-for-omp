@@ -13,8 +13,8 @@ module.exports = {
   'cli.error.invalidManifest': 'gsd-for-omp 清单无效：{path}：{message}',
   'cli.error.unsupportedCore': 'gsd-for-omp 需要 @opengsd/gsd-core >={minimum}；当前版本 {version}',
   'cli.error.refusingOverwrite': '拒绝覆盖未托管或已本地修改的文件：{path}（加 --force 可替换 GSD 托管的投影文件）',
-  'cli.error.updateCheckFailed': 'gsd-for-omp：无法检查更新（GitHub API 不可达或没有 release）',
-  'cli.error.updateFailed': 'gsd-for-omp：更新失败 —— npm install 未正常退出；请手动执行 tarball URL 安装后再运行 `gsd-for-omp install`',
+  'cli.error.updateCheckFailed': 'gsd-for-omp：无法检查更新（npm registry 不可达或未返回版本）；请手动执行 `npm install --global gsd-for-omp@latest`，然后运行 `gsd-for-omp install`',
+  'cli.error.updateFailed': 'gsd-for-omp：更新失败 —— npm install 未正常退出；请手动执行 `npm install --global gsd-for-omp@latest`，然后运行 `gsd-for-omp install`',
   'cli.error.updateProjectionFailed': 'gsd-for-omp：更新已安装新包，但无法重新投影 OMP 文件；请手动运行 `gsd-for-omp install`',
 
   'eos.error.unexpectedProfile': 'gsd-for-omp：EoS 协商得到 {profile}，应为 programmatic-cli',
