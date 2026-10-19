@@ -11,7 +11,7 @@ module.exports = {
   'cli.error.rootRequiresPath': '--root 需要一个路径',
   'cli.error.cannotReadManifest': '无法读取 {path}：{message}',
   'cli.error.invalidManifest': 'gsd-for-omp 清单无效：{path}：{message}',
-  'cli.error.unsupportedCore': 'gsd-for-omp 需要 @opengsd/gsd-core >=1.11.0；当前版本 {version}',
+  'cli.error.unsupportedCore': 'gsd-for-omp 需要 @opengsd/gsd-core >={minimum}；当前版本 {version}',
   'cli.error.refusingOverwrite': '拒绝覆盖未托管或已本地修改的文件：{path}（加 --force 可替换 GSD 托管的投影文件）',
   'cli.error.updateCheckFailed': 'gsd-for-omp：无法检查更新（GitHub API 不可达或没有 release）',
   'cli.error.updateFailed': 'gsd-for-omp：更新失败 —— npm install 未正常退出；请手动执行 tarball URL 安装后再运行 `gsd-for-omp install`',

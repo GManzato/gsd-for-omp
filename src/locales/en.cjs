@@ -11,7 +11,7 @@ module.exports = {
   'cli.error.rootRequiresPath': '--root requires a path',
   'cli.error.cannotReadManifest': 'Cannot read {path}: {message}',
   'cli.error.invalidManifest': 'Invalid gsd-for-omp manifest at {path}: {message}',
-  'cli.error.unsupportedCore': 'gsd-for-omp requires @opengsd/gsd-core >=1.11.0; found {version}',
+  'cli.error.unsupportedCore': 'gsd-for-omp requires @opengsd/gsd-core >={minimum}; found {version}',
   'cli.error.refusingOverwrite': 'Refusing to overwrite unmanaged or modified file: {path} (rerun with --force to replace GSD-owned projections)',
   'cli.error.updateCheckFailed': 'gsd-for-omp: could not check for updates (GitHub API unreachable or returned no release)',
   'cli.error.updateFailed': 'gsd-for-omp: update failed — npm install did not exit cleanly; run the tarball URL manually and then `gsd-for-omp install`',

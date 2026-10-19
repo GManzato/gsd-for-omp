@@ -22,7 +22,7 @@
     "docs"
   ],
   "scripts": {
-    "lint": "node --check bin/gsd-for-omp.cjs && node --check src/eos.cjs && node --check src/extension.cjs && node --check src/gsd-graphify-worker.cjs && node --check src/locale.cjs && node --check src/locales/en.cjs && node --check src/locales/zh-CN.cjs && node --check src/projection.cjs",
+    "lint": "node scripts/lint.cjs",
     "test": "node --test",
     "prepack": "npm run lint && npm test"
   },
@@ -31,7 +31,7 @@
   },
   "engines": {
     "node": ">=24.0.0",
-    "gsd": ">=1.11.0"
+    "gsd": ">=1.12.0"
   },
   "repository": {
     "type": "git",

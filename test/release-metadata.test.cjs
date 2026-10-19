@@ -38,3 +38,15 @@ test('release metadata and install documentation use the package version', () =>
     'CHANGELOG.md Unreleased compare link must use the package version',
   );
 });
+
+test('bundled gsd-core dependency cannot resolve below the declared engines.gsd minimum', () => {
+  const packageJson = readJson('package.json');
+  const minimum = /^>=(\d+\.\d+\.\d+)$/.exec(packageJson.engines.gsd);
+  const floor = /^\^(\d+\.\d+\.\d+)$/.exec(packageJson.dependencies['@opengsd/gsd-core']);
+  assert.ok(minimum, `engines.gsd must be a >=x.y.z range; got ${packageJson.engines.gsd}`);
+  assert.ok(floor, 'the @opengsd/gsd-core dependency must be a ^x.y.z range');
+  const parts = (version) => version.split('.').map(Number);
+  const [a, b] = [parts(floor[1]), parts(minimum[1])];
+  const comparison = a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+  assert.ok(comparison >= 0, `dependency floor ${floor[1]} is below engines.gsd ${minimum[1]}`);
+});

@@ -16,6 +16,7 @@ const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 const Eos = require('./eos.cjs');
 const { ompExecuteDispatchContract } = require('./projection.cjs');
+const GSD_CORE_REQUIRED = `gsd-for-omp: @opengsd/gsd-core ${require('../package.json').engines.gsd} is required`;
 
 // Resolve the GSD engine tree (the dir holding gsd-core/ + hooks/).
 // Works across dev (<root>/pi/gsd.cjs → <root>) and installed layouts.
@@ -30,7 +31,7 @@ function resolveEngineRoot(startDir) {
       if (parent === dir) break;
       dir = parent;
     }
-    throw new Error('gsd-for-omp: @opengsd/gsd-core >=1.11.0 is required');
+    throw new Error(GSD_CORE_REQUIRED);
   }
 }
 
@@ -1072,7 +1073,7 @@ module.exports = function gsdPiExtension(pi, options = {}) {
         if (parent === dir) break;
         dir = parent;
       }
-      throw new Error('gsd-for-omp: @opengsd/gsd-core >=1.11.0 is required');
+      throw new Error(GSD_CORE_REQUIRED);
     }
   }
 

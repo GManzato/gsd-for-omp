@@ -20,6 +20,7 @@ const LEGACY_EXTENSION_MARKER = 'GSD extension for Pi-compatible hosts';
 const GITHUB_REPO = 'GManzato/gsd-for-omp';
 const RELEASE_API = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
 const RELEASE_PAGE = `https://github.com/${GITHUB_REPO}/releases/latest`;
+const MIN_GSD_CORE = packageJson.engines.gsd.replace(/^>=/, '');
 
 function sha256(content) {
   return crypto.createHash('sha256').update(content).digest('hex');
@@ -345,8 +346,8 @@ function removeEmptyParents(start, stop) {
 function assertSupportedCore(coreRoot) {
   const corePackage = JSON.parse(fs.readFileSync(path.join(coreRoot, 'package.json'), 'utf8'));
   const match = String(corePackage.version || '').match(/^(\d+)\.(\d+)\.(\d+)/);
-  if (!match || compareVersions(corePackage.version, '1.11.0') < 0) {
-    throw new Error(t('cli.error.unsupportedCore', { version: corePackage.version || 'unknown' }));
+  if (!match || compareVersions(corePackage.version, MIN_GSD_CORE) < 0) {
+    throw new Error(t('cli.error.unsupportedCore', { minimum: MIN_GSD_CORE, version: corePackage.version || 'unknown' }));
   }
   return corePackage.version;
 }
