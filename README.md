@@ -16,7 +16,7 @@
 
 This project is third-party software. It is not endorsed, reviewed, or maintained by OpenGSD.
 
-`gsd-for-omp` is a fork of [tchivs/gsd-omp](https://github.com/tchivs/gsd-omp), continued as an independent project. The first `gsd-for-omp` release is pending; until it is published, install from `main` with `npm install --global github:GManzato/gsd-for-omp` followed by `gsd-for-omp install`.
+`gsd-for-omp` is a fork of [tchivs/gsd-omp](https://github.com/tchivs/gsd-omp), continued as an independent project.
 
 
 ## Documentation

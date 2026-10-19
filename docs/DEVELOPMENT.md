@@ -86,9 +86,9 @@ scripts/bump-version.cjs Release-version metadata updater
 
 The CLI resolves the installed GSD Core package, builds an EoS binding, and writes an extension wrapper plus projected agents and skills. `src/extension.cjs` is loaded by OMP and delegates orchestration to OMP's native task/event surfaces; it does not patch GSD Core. `src/projection.cjs` rewrites runtime paths and command names so projected content points at the selected OMP root.
 
-## Pull requests and protected `main`
+## Pull requests and `main`
 
-`main` is protected by the repository's `Protect main` ruleset with pull requests and required status checks. Treat direct pushes to `main` as unavailable: develop on a branch, open a pull request, and wait for CI before merge.
+Develop on a branch, open a pull request, and wait for CI before merge. Every commit that lands on `main` and passes CI is released automatically (see below), so `main` must stay releasable.
 
 A useful PR validation sequence is:
 
@@ -102,15 +102,15 @@ For changes to installation, projection, extension registration, or host compati
 
 ## Release workflow
 
-`.github/workflows/release.yml` runs on every push to `main`. Its behavior is automated:
+`.github/workflows/release.yml` runs when CI finishes successfully for a push to `main`, and can also be started by hand (`gh workflow run release.yml`). Its behavior is automated:
 
-1. Read `package.json`, the latest release tag, and any tag exactly at `HEAD`.
-2. If `HEAD` already has the current version tag, do nothing. If the package version is already ahead of the latest tag, tag that version; otherwise increment the patch version.
-3. For a bump, create or update `chore/release-v<version>`, run `node scripts/bump-version.cjs <semver>`, commit the package/lockfile/README URL changes, and open or update a PR targeting `main`.
-4. Wait for the PR's CI status. The workflow merges a clean release PR (or waits for required approval when GitHub marks a run `action_required`).
-5. Tag the resulting commit as `v<version>` and create the GitHub release. That release is the source used by `gsd-for-omp update`.
+1. Skip if `main` has moved past the commit CI tested; the newer commit's CI run releases it.
+2. If `HEAD` already carries the `v<version>` tag from `package.json`, do nothing.
+3. If `package.json` carries a version that has no tag yet (a manual minor or major bump), release that version as-is.
+4. Otherwise increment the patch version with `node scripts/bump-version.cjs <semver>`, check it with `test/release-metadata.test.cjs`, and commit `chore: release gsd-for-omp v<version>` straight to `main`. The commit is pushed with `GITHUB_TOKEN`, so it does not start another CI or release run.
+5. Tag the commit as `v<version>` and create the GitHub release, with notes listing the commit subjects since the previous release. That release is the source used by `gsd-for-omp update`.
 
-The release job currently sets up Node.js `22.x` in its workflow, while the package's runtime engine remains Node.js `>=24.0.0`; local development and CI should use Node 24 or newer. Do not hand-edit generated release metadata in a feature PR; the release workflow and `scripts/bump-version.cjs` keep `package.json`, `package-lock.json`, and the two README install URLs aligned.
+To ship a minor or major version, bump `package.json` in a PR with `node scripts/bump-version.cjs <semver>`. Otherwise do not hand-edit release metadata in a feature PR; the workflow and `scripts/bump-version.cjs` keep `package.json`, `package-lock.json`, the README install URLs, and the changelog compare link aligned. If `main` is later protected by a ruleset, allow `github-actions` to bypass it so the release commit can be pushed.
 
 ## Related guides
 

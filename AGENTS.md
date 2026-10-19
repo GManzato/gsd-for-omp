@@ -108,7 +108,7 @@ OMP_VERSION=latest GSD_FOR_OMP_BIN=gsd-for-omp node scripts/host-smoke.cjs
 - `PI_CODING_AGENT_DIR` selects the install/runtime root; `--root` overrides it. Preserve a pre-existing `GSD_AGENTS_DIR`; otherwise use `<runtime-root>/agents`. `GSD_RUNTIME=omp` is an internal child-process bridge setting.
 - Shell locale precedence is `GSD_FOR_OMP_LOCALE` → `LC_ALL` → `LC_MESSAGES` → `LANG`; supported values normalize to `en` or `zh-CN`. Project-session language comes from `.planning/config.json` `response_language`.
 - `GITHUB_TOKEN`/`GH_TOKEN` are process-environment credentials for release lookup during `update`. `OMP_BIN`, `GSD_FOR_OMP_BIN`, `OMP_VERSION`, and `OPENAI_API_KEY` are host-smoke controls; the smoke script uses a placeholder key only to start the host and does not make a model request.
-- `main` is protected. Work on a descriptive branch, run applicable checks, and use a pull request; CI covers Node 24 plus OMP `17.0.3` and `latest`. The release workflow bumps patch versions, opens/merges a release PR, tags, and publishes the GitHub release.
+- Work on a descriptive branch, run applicable checks, and use a pull request; CI covers Node 24 plus OMP `17.0.3` and `latest`. Every `main` commit that passes CI is released: the release workflow bumps the patch version on `main` (or keeps a manually bumped, untagged version), tags it, and publishes the GitHub release.
 
 ## Testing & QA
 

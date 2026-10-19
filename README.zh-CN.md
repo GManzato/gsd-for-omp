@@ -17,7 +17,7 @@
 
 本项目为第三方软件，未由 OpenGSD 背书、审查或维护。
 
-`gsd-for-omp` 派生自 [tchivs/gsd-omp](https://github.com/tchivs/gsd-omp)，现作为独立项目继续维护。首个 `gsd-for-omp` 版本尚未发布；发布前请从 `main` 安装：`npm install --global github:GManzato/gsd-for-omp`，然后运行 `gsd-for-omp install`。
+`gsd-for-omp` 派生自 [tchivs/gsd-omp](https://github.com/tchivs/gsd-omp)，现作为独立项目继续维护。
 
 ## 文档
 
