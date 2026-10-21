@@ -35,6 +35,7 @@ const { createSessionControls } = require('./extension/session-controls.cjs');
 const { createRuntimeState } = require('./extension/state.cjs');
 const { createStatusSurface } = require('./extension/status.cjs');
 const { createTaskResultsWriter } = require('./extension/task-results.cjs');
+const { createUpdateCheck } = require('./extension/update-check.cjs');
 
 module.exports = function gsdPiExtension(pi, options = {}) {
   if (!pi || typeof pi !== 'object') {
@@ -56,7 +57,8 @@ module.exports = function gsdPiExtension(pi, options = {}) {
   const toolHooks = createToolHooks({ pi, state });
   const taskResults = createTaskResultsWriter();
   const { invokeAsync } = createCliBridge({ agentsDir, cliPath });
-  const status = createStatusSurface({ state, ...goalMode, ...taskTracker });
+  const updateCheck = createUpdateCheck({ runtimeRoot, ...options.updateCheck });
+  const status = createStatusSurface({ state, ...goalMode, ...taskTracker, updateNotice: updateCheck.updateNotice });
   const nativeUi = createNativeUi({ pi, ...status });
   const sessionControls = createSessionControls({ pi, ...goalMode, ...taskTracker, ...status });
   const onboarding = createOnboarding({ state, ...status });
@@ -92,6 +94,7 @@ module.exports = function gsdPiExtension(pi, options = {}) {
     ...nativeUi,
     ...onboarding,
     ...continuation,
+    ...updateCheck,
   });
 
   gsdPiExtension._internals = {
@@ -100,6 +103,7 @@ module.exports = function gsdPiExtension(pi, options = {}) {
     widgetLines: status.widgetLines,
     _nativeTaskActivityCount: taskTracker.nativeTaskActivityCount,
     _nativeTaskExecutionSnapshot: taskTracker.nativeTaskExecutionSnapshot,
+    _pendingUpdateCheck: updateCheck._pendingUpdateCheck,
   };
 };
 

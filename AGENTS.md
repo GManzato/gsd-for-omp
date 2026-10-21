@@ -96,6 +96,7 @@ OMP_VERSION=latest GSD_FOR_OMP_BIN=gsd-for-omp node scripts/host-smoke.cjs
 - `src/extension/commands.cjs`, `native-launchers.cjs`, `native-prompts.cjs` — slash commands, `gsd_invoke`, and native OMP workflow launchers/prompts.
 - `src/extension/cli-bridge.cjs` — bounded `gsd-tools` child-process bridge (`invokeAsync`).
 - `src/extension/status.cjs`, `native-ui.cjs`, `native-tasks.cjs`, `goal-mode.cjs`, `lifecycle.cjs` — status widget/footer/overlay, native task ref-counting, Goal Mode state, and `pi.on` handlers.
+- `src/extension/update-check.cjs` — background npm update check (24 h cache, opt-out env vars) behind the session-start notice and footer `⬆` marker.
 - `src/projection.cjs` — deterministic agent/skill projection, path rewriting, command-name conversion, and OMP orchestration text.
 - `src/locale.cjs` and `src/locales/*.cjs` — shell/EoS locale selection and dictionaries.
 - `src/gsd-graphify-worker.cjs` — detached graphify rebuild worker with lock/status handling.

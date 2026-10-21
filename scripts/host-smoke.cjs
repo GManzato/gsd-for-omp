@@ -17,6 +17,7 @@ const hostEnvironment = {
   ...process.env,
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || 'not-a-real-key',
   PI_CODING_AGENT_DIR: runtimeRoot,
+  GSD_FOR_OMP_NO_UPDATE_CHECK: '1',
 };
 
 function run(command, args, options = {}) {

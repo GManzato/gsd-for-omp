@@ -8,9 +8,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { goalStateFromEvent } = require('./goal-mode.cjs');
 const { extractCheckpoint, extractNextAction, persistCheckpoint, persistNextAction } = require('./planning-store.cjs');
+const { usesChinese } = require('./localize.cjs');
 const { isGsdProject, stateReminder } = require('./planning.cjs');
 const { releaseGsdProjectRuntimeState } = require('./state.cjs');
 const { extractTaskResults, failedNativeTaskResults } = require('./task-results.cjs');
+const { updateNoticeMessage } = require('./update-check.cjs');
 
 function assistantMessageText(message) {
   if (message?.role !== 'assistant' || !Array.isArray(message.content)) return '';
@@ -27,6 +29,7 @@ function registerLifecycleHandlers({
   pi,
   runtimeRoot,
   state,
+  cancelUpdateCheck,
   choosePendingContinuation,
   forgetGoalModeState,
   nativePhaseWriteBlock,
@@ -42,6 +45,7 @@ function registerLifecycleHandlers({
   scheduleOnboardingPrompt,
   setNativeRuntimeSignal,
   showNativeStatusOverlay,
+  startUpdateCheck,
   startGraphifyAutoUpdate,
   trackGraphifyHead,
   trackGsdTaskProgress,
@@ -70,6 +74,10 @@ function registerLifecycleHandlers({
     if (!ctx.hasUI) return;
     const reminder = stateReminder(ctx.cwd);
     if (reminder) ctx.ui.notify(reminder, 'info');
+    startUpdateCheck((notice) => {
+      ctx.ui.notify(updateNoticeMessage(notice, usesChinese(ctx.cwd)), 'info');
+      updateStatus(ctx);
+    });
   });
 
   try {
@@ -88,6 +96,7 @@ function registerLifecycleHandlers({
   }
 
   pi.on('session_shutdown', (_event, ctx) => {
+    cancelUpdateCheck();
     forgetGoalModeState(ctx);
     releaseGsdProjectRuntimeState(state, ctx.cwd);
   });

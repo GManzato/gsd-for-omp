@@ -5,7 +5,11 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const extension = require('../src/extension.cjs');
+
+// Tests that exercise the update notice inject their own env and version source.
+process.env.GSD_FOR_OMP_NO_UPDATE_CHECK = '1';
 
 function schema() {
   return {
@@ -1084,5 +1088,183 @@ test('ignores non-GSD entries in native task progress snapshots', async () => {
     assert.equal(extension._internals._nativeTaskActivityCount(root), 0);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+function updateCheckFixture({ manifestVersion, env = {}, latest = async () => '1.2.0', cache, rootName = 'agent' } = {}) {
+  const project = gsdProjectRoot();
+  const runtimeParent = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-update-runtime-'));
+  const runtimeRoot = path.join(runtimeParent, rootName);
+  fs.mkdirSync(runtimeRoot);
+  const cacheFile = path.join(runtimeRoot, 'cache', 'update-check.json');
+  if (manifestVersion) fs.writeFileSync(path.join(runtimeRoot, '.gsd-for-omp-manifest.json'), JSON.stringify({ version: manifestVersion }));
+  if (cache) {
+    fs.mkdirSync(path.dirname(cacheFile), { recursive: true });
+    fs.writeFileSync(cacheFile, JSON.stringify(cache));
+  }
+  const lookups = [];
+  const notices = [];
+  const statuses = [];
+  const ctx = {
+    cwd: project,
+    hasUI: true,
+    ui: {
+      notify(message, level) { notices.push([message, level]); },
+      setWidget() {},
+      setStatus(_key, text) { statuses.push(text); },
+      setWorkingMessage() {},
+    },
+  };
+  function start() {
+    const pi = mockPi();
+    extension(pi, {
+      runtime: 'omp',
+      runtimeRoot,
+      updateCheck: {
+        env,
+        cacheFile,
+        currentVersion: '1.1.1',
+        now: () => 10_000_000_000,
+        latestVersion: (options) => { lookups.push(options); return latest(options); },
+      },
+    });
+    return pi;
+  }
+  async function sessionStart(pi) {
+    await pi.events.get('session_start')({}, ctx);
+    await extension._internals._pendingUpdateCheck();
+  }
+  const updateNotices = () => notices.filter(([message]) => message.includes('gsd-for-omp'));
+  const cleanup = () => {
+    fs.rmSync(project, { recursive: true, force: true });
+    fs.rmSync(runtimeParent, { recursive: true, force: true });
+  };
+  return { project, runtimeRoot, cacheFile, lookups, statuses, start, sessionStart, updateNotices, cleanup };
+}
+
+test('notifies once per session and marks the footer when a newer gsd-for-omp is published', async () => {
+  const fixture = updateCheckFixture({ manifestVersion: '1.1.1' });
+  try {
+    const pi = fixture.start();
+    await fixture.sessionStart(pi);
+    await fixture.sessionStart(pi);
+    assert.equal(fixture.lookups.length, 1);
+    assert.deepEqual(fixture.updateNotices(), [[
+      `gsd-for-omp 1.2.0 is available (installed 1.1.1). Run \`gsd-for-omp update --root ${fixture.runtimeRoot}\` in a terminal, then restart OMP.`,
+      'info',
+    ]]);
+    assert.match(fixture.statuses.at(-1), / · ⬆ 1\.2\.0$/);
+    assert.deepEqual(JSON.parse(fs.readFileSync(fixture.cacheFile, 'utf8')), { checkedAt: 10_000_000_000, latest: '1.2.0', ok: true });
+
+    // A later OMP launch reuses the fresh cache instead of querying npm again.
+    const next = fixture.start();
+    await fixture.sessionStart(next);
+    assert.equal(fixture.lookups.length, 1);
+    assert.equal(fixture.updateNotices().length, 2);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('refreshes a stale update cache and stays silent when the installed version is current', async () => {
+  const fixture = updateCheckFixture({
+    manifestVersion: '1.1.1',
+    latest: async () => '1.1.1',
+    cache: { checkedAt: 10_000_000_000 - 25 * 60 * 60 * 1000, latest: '1.1.0', ok: true },
+  });
+  try {
+    await fixture.sessionStart(fixture.start());
+    assert.equal(fixture.lookups.length, 1);
+    assert.deepEqual(fixture.updateNotices(), []);
+    assert.doesNotMatch(fixture.statuses.at(-1), /⬆/);
+    assert.equal(JSON.parse(fs.readFileSync(fixture.cacheFile, 'utf8')).latest, '1.1.1');
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('asks for a reinstall when the OMP projection is older than the installed package', async () => {
+  const fixture = updateCheckFixture({ manifestVersion: '1.1.0', latest: async () => '1.1.1', rootName: "work's omp root" });
+  try {
+    fs.writeFileSync(path.join(fixture.project, '.planning', 'config.json'), JSON.stringify({ response_language: 'zh-CN' }));
+    await fixture.sessionStart(fixture.start());
+    assert.deepEqual(fixture.updateNotices(), [[
+      `已安装 gsd-for-omp 1.1.1，但 OMP 文件仍由 1.1.0 生成。请在终端运行 \`gsd-for-omp install --root '${path.dirname(fixture.runtimeRoot)}/work'\\''s omp root'\`，然后重启 OMP。`,
+      'info',
+    ]]);
+    assert.match(fixture.statuses.at(-1), /⬆ 需重新安装$/);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('suggests an update command that targets a custom runtime root with spaces and quotes', async () => {
+  const fixture = updateCheckFixture({ manifestVersion: '1.1.1', rootName: `OMP "work" profile's agent` });
+  try {
+    await fixture.sessionStart(fixture.start());
+    const [[message]] = fixture.updateNotices();
+    const command = /`(gsd-for-omp [^`]+)`/.exec(message)[1];
+    // Let a real POSIX shell split the suggested command line.
+    const words = spawnSync('sh', ['-c', `printf '%s\\n' ${command.replace(/^gsd-for-omp /, '')}`], { encoding: 'utf8' }).stdout;
+    assert.deepEqual(words.split('\n').slice(0, -1), ['update', '--root', fixture.runtimeRoot]);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('backs off after a failed registry lookup without notifying', async () => {
+  const fixture = updateCheckFixture({ manifestVersion: '1.1.1', latest: async () => { throw new Error('offline'); } });
+  try {
+    await fixture.sessionStart(fixture.start());
+    assert.deepEqual(JSON.parse(fs.readFileSync(fixture.cacheFile, 'utf8')), { checkedAt: 10_000_000_000, latest: null, ok: false });
+    await fixture.sessionStart(fixture.start());
+    assert.equal(fixture.lookups.length, 1);
+    assert.deepEqual(fixture.updateNotices(), []);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('skips the update check when opted out, in CI, or outside a GSD project', async () => {
+  for (const env of [{ GSD_FOR_OMP_NO_UPDATE_CHECK: '1' }, { NO_UPDATE_NOTIFIER: '1' }, { CI: 'true' }]) {
+    const fixture = updateCheckFixture({ env });
+    try {
+      await fixture.sessionStart(fixture.start());
+      assert.equal(fixture.lookups.length, 0, JSON.stringify(env));
+      assert.equal(fs.existsSync(fixture.cacheFile), false);
+    } finally {
+      fixture.cleanup();
+    }
+  }
+  const fixture = updateCheckFixture();
+  try {
+    fs.rmSync(path.join(fixture.project, '.planning'), { recursive: true, force: true });
+    await fixture.sessionStart(fixture.start());
+    assert.equal(fixture.lookups.length, 0);
+    assert.deepEqual(fixture.updateNotices(), []);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('cancels a pending update lookup on session shutdown', async () => {
+  let release;
+  const fixture = updateCheckFixture({
+    latest: ({ signal }) => new Promise((resolve) => {
+      release = resolve;
+      signal.addEventListener('abort', () => resolve(null), { once: true });
+    }),
+  });
+  try {
+    const pi = fixture.start();
+    await pi.events.get('session_start')({}, { cwd: fixture.project, hasUI: true, ui: { notify() {}, setWidget() {}, setStatus() {}, setWorkingMessage() {} } });
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(typeof release, 'function');
+    await pi.events.get('session_shutdown')({}, { cwd: fixture.project });
+    assert.equal(fixture.lookups[0].signal.aborted, true);
+    await extension._internals._pendingUpdateCheck();
+    assert.equal(fs.existsSync(fixture.cacheFile), false);
+  } finally {
+    fixture.cleanup();
   }
 });

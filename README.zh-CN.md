@@ -50,6 +50,7 @@ gsd-for-omp doctor
 ## OMP 集成
 
 - **状态 overlay** —— `Ctrl+Shift+G` 打开实时 GSD 状态 overlay（也可在启动时用 `--gsd-status` flag 打开）；widget 与 footer 显示同样的状态。
+- **更新提示** —— 在 GSD 项目中，当 npm 上发布了更新的 `gsd-for-omp` 时，会弹出通知并在页脚显示 `⬆` 标记；npm 检查在后台运行，每天最多一次。设置 `GSD_FOR_OMP_NO_UPDATE_CHECK=1` 可关闭。
 - **原生控制** —— `/gsd-status` 接受 `--compact`、`--stop`、`--branch`、`--tree`、`--switch`、`--reload`，对应 OMP 的原生会话控制。
 - **Goal Mode** —— 当主机提供 `goal_updated` 事件时，目标、状态与 token 预算会同步到 `/gsd-status`；运行 `/gsd-next` 前请先暂停或放弃目标（`/goal pause`、`/goal drop`）。没有该事件的主机（如 OMP 17）仍可使用其余全部功能。
 - **模型** —— 模型由 OMP 掌管。请使用 OMP 的 `/model` 切换；GSD 的 `model_profile` 设置在 OMP 下不起作用。详见[配置参考](docs/CONFIGURATION.md#model-routing)。
