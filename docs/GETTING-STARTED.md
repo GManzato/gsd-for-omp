@@ -145,6 +145,8 @@ gsd-for-omp install
 
 The update also upgrades the plugin's bundled GSD Core dependency. It does not update an OMP-managed engine tree; use OMP's own update path for the host itself.
 
+Inside a GSD project, OMP tells you when an update is available: one notification per session and a `⬆ <version>` marker in the GSD footer. The registry lookup runs in the background at most once a day and never blocks or fails a session. If the package was upgraded with `npm` but `gsd-for-omp install` was not rerun, the same notice asks you to re-project instead (footer `⬆ reinstall`). Set `GSD_FOR_OMP_NO_UPDATE_CHECK=1` to turn it off; see [Configuration](CONFIGURATION.md#runtime-and-localization-variables).
+
 ## Uninstall
 
 Remove managed projections before removing the global installer:

@@ -12,6 +12,7 @@ const { localizedPlanProgress, planProgress } = require('./phases.cjs');
 const { checkpointRecoveryLines, readNextAction, resumableCheckpoint } = require('./planning-store.cjs');
 const { isGsdProject, stateSnapshot } = require('./planning.cjs');
 const { nativeTaskRecovery, nativeTaskRecoveryLines } = require('./task-results.cjs');
+const { updateNoticeStatus } = require('./update-check.cjs');
 
 function contextUsageFor(ctx) {
   if (typeof ctx?.getContextUsage !== 'function') return null;
@@ -50,7 +51,7 @@ function widgetColor(code, text) {
 /**
  * Status surfaces bound to the shared runtime state, Goal Mode and native task tracking.
  */
-function createStatusSurface({ state, goalModeStateFor, nativeTaskActivityCount, nativeTaskExecutionSnapshot }) {
+function createStatusSurface({ state, goalModeStateFor, nativeTaskActivityCount, nativeTaskExecutionSnapshot, updateNotice }) {
   const { nativeRuntimeSignals } = state;
 
   function setNativeRuntimeSignal(cwd, signal) {
@@ -279,6 +280,8 @@ function createStatusSurface({ state, goalModeStateFor, nativeTaskActivityCount,
     if (signal?.kind === 'compacting') statusParts.push(chinese ? '压缩中' : 'compacting');
     if (signal?.kind === 'retrying') statusParts.push(chinese ? `重试 ${signal.attempt}/${signal.maxAttempts}` : `retry ${signal.attempt}/${signal.maxAttempts}`);
     if (usage) statusParts.push(`${usage.percent}% ${chinese ? '上下文' : 'context'}`);
+    const pendingUpdate = updateNotice();
+    if (pendingUpdate) statusParts.push(updateNoticeStatus(pendingUpdate, chinese));
     const statusText = statusParts.join(' · ');
     if (typeof ctx.ui.setWidget === 'function') ctx.ui.setWidget('gsd', widgetLines(ctx.cwd, goalState), { placement: 'aboveEditor' });
     if (typeof ctx.ui.setStatus === 'function') {

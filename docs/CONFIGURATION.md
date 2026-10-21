@@ -52,6 +52,10 @@ The extension passes `GSD_AGENTS_DIR` together with `GSD_RUNTIME=omp` to every `
 | `LC_ALL` | Optional | Next POSIX locale or `en` | First POSIX fallback after `GSD_FOR_OMP_LOCALE`. |
 | `LC_MESSAGES` | Optional | Next POSIX locale or `en` | Second POSIX fallback after `GSD_FOR_OMP_LOCALE` and `LC_ALL`. |
 | `LANG` | Optional | `en` | Final POSIX locale fallback after `GSD_FOR_OMP_LOCALE`, `LC_ALL`, and `LC_MESSAGES`. |
+| `GSD_FOR_OMP_NO_UPDATE_CHECK` | Optional | unset | Any value other than empty, `0`, `false`, `no`, or `off` disables the in-session update notice and its background `npm view gsd-for-omp version` lookup. |
+| `NO_UPDATE_NOTIFIER` | Optional | unset | Conventional opt-out honored the same way as `GSD_FOR_OMP_NO_UPDATE_CHECK`. |
+| `CI` | Optional | unset | When set to a truthy value, the update notice is skipped so CI never queries the registry. |
+| `XDG_CACHE_HOME` | Optional | `~/.cache` | Parent of `gsd-for-omp/update-check.json`, which caches the last registry result for 24 hours (1 hour after a failed lookup). |
 
 The effective shell/EoS locale is selected in this exact order: `GSD_FOR_OMP_LOCALE`, `LC_ALL`, `LC_MESSAGES`, `LANG`. Supported dictionaries are `en` and `zh-CN`; a value such as `zh_CN.UTF-8` selects `zh-CN`, while an unknown or empty value falls back to English. This locale does not override a project's in-session language setting.
 

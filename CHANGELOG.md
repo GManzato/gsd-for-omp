@@ -4,6 +4,10 @@ All notable changes to `gsd-for-omp` are recorded here in [Keep a Changelog](htt
 
 ## [Unreleased]
 
+### Added
+
+- In GSD projects, OMP now tells you when a newer `gsd-for-omp` is on npm: one notification per session (in the project's `response_language`) and a `⬆ <version>` marker in the GSD footer. The registry lookup (`npm view gsd-for-omp version`) runs in the background at most once a day, is cached in `~/.cache/gsd-for-omp/update-check.json` (or under `XDG_CACHE_HOME`), and fails silently. The same notice asks for `gsd-for-omp install` when the package was upgraded but the OMP files were not re-projected. Set `GSD_FOR_OMP_NO_UPDATE_CHECK=1` or `NO_UPDATE_NOTIFIER=1` to turn it off; it is also off when `CI` is set.
+
 ## [1.1.1] - 2026-10-21
 
 ### Security
