@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const extension = require('../src/extension.cjs');
 
 // Tests that exercise the update notice inject their own env and version source.
@@ -1090,9 +1091,11 @@ test('ignores non-GSD entries in native task progress snapshots', async () => {
   }
 });
 
-function updateCheckFixture({ manifestVersion, env = {}, latest = async () => '1.2.0', cache } = {}) {
+function updateCheckFixture({ manifestVersion, env = {}, latest = async () => '1.2.0', cache, rootName = 'agent' } = {}) {
   const project = gsdProjectRoot();
-  const runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-update-runtime-'));
+  const runtimeParent = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-update-runtime-'));
+  const runtimeRoot = path.join(runtimeParent, rootName);
+  fs.mkdirSync(runtimeRoot);
   const cacheFile = path.join(runtimeRoot, 'cache', 'update-check.json');
   if (manifestVersion) fs.writeFileSync(path.join(runtimeRoot, '.gsd-for-omp-manifest.json'), JSON.stringify({ version: manifestVersion }));
   if (cache) {
@@ -1134,9 +1137,9 @@ function updateCheckFixture({ manifestVersion, env = {}, latest = async () => '1
   const updateNotices = () => notices.filter(([message]) => message.includes('gsd-for-omp'));
   const cleanup = () => {
     fs.rmSync(project, { recursive: true, force: true });
-    fs.rmSync(runtimeRoot, { recursive: true, force: true });
+    fs.rmSync(runtimeParent, { recursive: true, force: true });
   };
-  return { project, cacheFile, lookups, statuses, start, sessionStart, updateNotices, cleanup };
+  return { project, runtimeRoot, cacheFile, lookups, statuses, start, sessionStart, updateNotices, cleanup };
 }
 
 test('notifies once per session and marks the footer when a newer gsd-for-omp is published', async () => {
@@ -1147,7 +1150,7 @@ test('notifies once per session and marks the footer when a newer gsd-for-omp is
     await fixture.sessionStart(pi);
     assert.equal(fixture.lookups.length, 1);
     assert.deepEqual(fixture.updateNotices(), [[
-      'gsd-for-omp 1.2.0 is available (installed 1.1.1). Run `gsd-for-omp update` in a terminal, then restart OMP.',
+      `gsd-for-omp 1.2.0 is available (installed 1.1.1). Run \`gsd-for-omp update --root ${fixture.runtimeRoot}\` in a terminal, then restart OMP.`,
       'info',
     ]]);
     assert.match(fixture.statuses.at(-1), / · ⬆ 1\.2\.0$/);
@@ -1181,15 +1184,29 @@ test('refreshes a stale update cache and stays silent when the installed version
 });
 
 test('asks for a reinstall when the OMP projection is older than the installed package', async () => {
-  const fixture = updateCheckFixture({ manifestVersion: '1.1.0', latest: async () => '1.1.1' });
+  const fixture = updateCheckFixture({ manifestVersion: '1.1.0', latest: async () => '1.1.1', rootName: "work's omp root" });
   try {
     fs.writeFileSync(path.join(fixture.project, '.planning', 'config.json'), JSON.stringify({ response_language: 'zh-CN' }));
     await fixture.sessionStart(fixture.start());
     assert.deepEqual(fixture.updateNotices(), [[
-      '已安装 gsd-for-omp 1.1.1，但 OMP 文件仍由 1.1.0 生成。请在终端运行 `gsd-for-omp install`，然后重启 OMP。',
+      `已安装 gsd-for-omp 1.1.1，但 OMP 文件仍由 1.1.0 生成。请在终端运行 \`gsd-for-omp install --root '${path.dirname(fixture.runtimeRoot)}/work'\\''s omp root'\`，然后重启 OMP。`,
       'info',
     ]]);
     assert.match(fixture.statuses.at(-1), /⬆ 需重新安装$/);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('suggests an update command that targets a custom runtime root with spaces and quotes', async () => {
+  const fixture = updateCheckFixture({ manifestVersion: '1.1.1', rootName: `OMP "work" profile's agent` });
+  try {
+    await fixture.sessionStart(fixture.start());
+    const [[message]] = fixture.updateNotices();
+    const command = /`(gsd-for-omp [^`]+)`/.exec(message)[1];
+    // Let a real POSIX shell split the suggested command line.
+    const words = spawnSync('sh', ['-c', `printf '%s\\n' ${command.replace(/^gsd-for-omp /, '')}`], { encoding: 'utf8' }).stdout;
+    assert.deepEqual(words.split('\n').slice(0, -1), ['update', '--root', fixture.runtimeRoot]);
   } finally {
     fixture.cleanup();
   }
