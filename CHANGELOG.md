@@ -4,6 +4,8 @@ All notable changes to `gsd-for-omp` are recorded here in [Keep a Changelog](htt
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-10-21
+
 ### Added
 
 - In GSD projects, OMP now tells you when a newer `gsd-for-omp` is on npm: one notification per session (in the project's `response_language`) and a `⬆ <version>` marker in the GSD footer. The registry lookup (`npm view gsd-for-omp version`) runs in the background at most once a day, is cached in `~/.cache/gsd-for-omp/update-check.json` (or under `XDG_CACHE_HOME`), and fails silently. The same notice asks for `gsd-for-omp install` when the package was upgraded but the OMP files were not re-projected. The suggested command always carries a shell-quoted `--root` for the session's runtime root, so it also works for custom roots from a terminal without `PI_CODING_AGENT_DIR`. Set `GSD_FOR_OMP_NO_UPDATE_CHECK=1` or `NO_UPDATE_NOTIFIER=1` to turn it off; it is also off when `CI` is set.
@@ -94,7 +96,8 @@ Related: [PR #53](https://github.com/tchivs/gsd-omp/pull/53), [release PR #54](h
 
 Related: [PR #51](https://github.com/tchivs/gsd-omp/pull/51), [release PR #52](https://github.com/tchivs/gsd-omp/pull/52).
 
-[Unreleased]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/GManzato/gsd-for-omp/compare/v1.0.27...v1.1.0
 [1.0.27]: https://github.com/GManzato/gsd-for-omp/compare/v1.0.26...v1.0.27
