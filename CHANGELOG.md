@@ -4,6 +4,8 @@ All notable changes to `gsd-for-omp` are recorded here in [Keep a Changelog](htt
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-10-26
+
 ### Added
 
 - `/gsd-execute-phase` checks that OMP will offer isolated tasks before the run starts. Without `--interactive`, it stops with a message when `task.isolation.enabled` is off or plan mode hides the task `isolated` option, instead of failing at the first executor dispatch after state reads and config writes. When nothing configures `task.isolation.enabled` (no user, project, env or protocol-host value), it is turned on for the current session only and a notification says so; `config.yml` is not touched. OMP 17 does not expose tool schemas to extensions, so it starts the run unchecked as before. The generated `extensions/gsd-for-omp.ts` wrapper now passes OMP's settings registry to the extension, so run `gsd-for-omp install` after updating.
@@ -106,7 +108,8 @@ Related: [PR #53](https://github.com/tchivs/gsd-omp/pull/53), [release PR #54](h
 
 Related: [PR #51](https://github.com/tchivs/gsd-omp/pull/51), [release PR #52](https://github.com/tchivs/gsd-omp/pull/52).
 
-[Unreleased]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/GManzato/gsd-for-omp/compare/v1.0.27...v1.1.0
