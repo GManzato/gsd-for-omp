@@ -53,6 +53,7 @@ gsd-for-omp doctor
 - **更新提示** —— 在 GSD 项目中，当 npm 上发布了更新的 `gsd-for-omp` 时，会弹出通知并在页脚显示 `⬆` 标记；npm 检查在后台运行，每天最多一次。设置 `GSD_FOR_OMP_NO_UPDATE_CHECK=1` 可关闭。
 - **原生控制** —— `/gsd-status` 接受 `--compact`、`--stop`、`--branch`、`--tree`、`--switch`、`--reload`，对应 OMP 的原生会话控制。
 - **Goal Mode** —— 当主机提供 `goal_updated` 事件时，目标、状态与 token 预算会同步到 `/gsd-status`；运行 `/gsd-next` 前请先暂停或放弃目标（`/goal pause`、`/goal drop`）。没有该事件的主机（如 OMP 17）仍可使用其余全部功能。
+- **阶段执行** —— `/gsd-execute-phase` 以 OMP 隔离任务派发执行器，因此需要 `task.isolation.enabled: true` 且关闭计划模式（`--interactive` 在当前会话内顺序执行，不需要隔离）。若该设置在任何位置都未配置，会为当前会话启用；显式的 `false` 会被保留。详见[配置参考](docs/CONFIGURATION.md#phase-execution-and-task-isolation)。
 - **模型** —— 模型由 OMP 掌管。请使用 OMP 的 `/model` 切换；GSD 的 `model_profile` 设置在 OMP 下不起作用。详见[配置参考](docs/CONFIGURATION.md#model-routing)。
 
 ## 更新与卸载

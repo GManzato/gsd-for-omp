@@ -60,7 +60,7 @@ An install performs these steps:
 
 1. Resolve `@opengsd/gsd-core` and run `Eos.initialize()`.
 2. Reject a bundled GSD Core version below the minimum declared in `package.json` `engines.gsd` (currently `>=1.12.0`).
-3. Build `extensions/gsd-for-omp.ts`, a thin OMP module wrapper that imports `src/extension.cjs` and passes `{ runtime: "omp", runtimeRoot }`.
+3. Build `extensions/gsd-for-omp.ts`, a thin OMP module wrapper that imports `src/extension.cjs` and passes `{ runtime: "omp", runtimeRoot, settingsRegistry }`. `settingsRegistry` is OMP's `@oh-my-pi/pi-coding-agent/config/registry` module, which resolves only inside the extension graph; the wrapper imports it in a `try` block so hosts without it still load.
 4. Project every `gsd-*.md` agent and every `gsd-*` skill with a `SKILL.md` from the resolved core tree.
 5. Stage all files in a temporary transaction directory, replace prior targets only after ownership checks, and write `.gsd-for-omp-manifest.json`.
 6. Remove unchanged stale managed projections and recognized legacy CJS extensions. Modified stale files remain protected.
@@ -139,6 +139,7 @@ Lifecycle event handling is project-scoped (the extension first checks whether t
 - `auto_compaction_start/end`, `auto_retry_start/end`, and `session_stop` expose transient native runtime signals in status.
 - `message_end` extracts pending next-action/checkpoint records from assistant text and persists them in the planning workspace.
 - `tool_execution_start/update/end`, `tool_result`, and `tool_call` track native GSD task IDs, progress, failures, settlement, hook decisions, and guarded repository writes.
+- `turn_end` and `agent_end` release the native phase execution guard: `turn_end` when `STATE.md` no longer reports an executing phase, `agent_end` when the run stopped with no native GSD task running and nothing was dispatched or the last plan failed.
 - `session_shutdown` clears context and project runtime tracking.
 
 ## Status surface and optional Goal Mode adapter

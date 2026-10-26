@@ -97,6 +97,45 @@ A minimal project-language example is:
 
 To select Simplified Chinese explicitly, use `"response_language": "Simplified Chinese"`. The first interactive `session_start` for a GSD project with no `response_language` offers `Simplified Chinese` or `English`; it can also ask for interaction style if `workflow.text_mode` is not already explicit. Projects without an interactive UI do not receive that picker.
 
+## Phase execution and task isolation
+
+`/gsd-execute-phase` dispatches every executor as an OMP native `task` with `isolated: true`. OMP offers that option only while `task.isolation.enabled` is `true` and plan mode is off, so the command checks the task tool's live schema before it starts a run:
+
+| Situation | Result |
+|---|---|
+| Task tool already offers `isolated` | The run starts. |
+| `task.isolation.enabled` is unset in every layer (provenance `default`) | The extension sets a session-only runtime override to `true`, shows a notification, and starts the run. `config.yml` is not written. |
+| `task.isolation.enabled` is `false` in `config.yml`, a project `.omp/config.yml`, an env var, or a protocol-host default (RPC/ACP modes pin it to `false`) | The run does not start; the message asks for `omp config set task.isolation.enabled true`, which OMP reloads live. |
+| `task.isolation.enabled` is `true` but plan mode hides `isolated` | The run does not start; leave plan mode and run the command again. |
+| `--interactive` | No check: the run executes inline without isolated tasks. |
+
+To enable isolation permanently:
+
+```yaml
+# ~/.omp/agent/config.yml
+task:
+  isolation:
+    enabled: true
+```
+
+The check and the session override use OMP 18's tool schemas and settings registry, which the generated `extensions/gsd-for-omp.ts` wrapper imports from `@oh-my-pi/pi-coding-agent/config/registry` and passes to the extension. OMP 17 exposes neither, so the run starts unchecked; on OMP 17, isolation is the `task.isolation.mode` setting, which defaults to `none`.
+
+### Executor commits in isolated workspaces
+
+An OMP isolated workspace is a private copy of the repository with HEAD detached at the parent's commit. The projected `gsd-executor` creates an `agent-phase{PHASE}-plan{PLAN}` branch there before its first commit, which satisfies the executor's protected-branch and detached-HEAD checks. OMP captures the commits from HEAD in both `task.isolation.merge` modes (as a patch, or replayed onto `omp/task/<id>`), and the branch is discarded with the workspace. A protected parent branch such as `main` with `branching_strategy: none` therefore does not block executor commits.
+
+### Parent-checkout guard
+
+While a non-interactive phase execution is active, the extension blocks `write`, `edit`, `ast_edit` and applying `lsp` calls that would change a file in the parent Git checkout outside the planning directory; repository changes must come from isolated executors. It allows:
+
+- files under the planning directory (normally `.planning/`), unless a path component is a symlink;
+- OMP internal URLs that do not address checkout files: `cfg://`, `local://`, `agent://`, `proc://`, `artifact://`, `skill://`, `omp://`, `history://`;
+- paths outside the checkout, including `~/` paths such as `~/.omp/agent/config.yml`, unless they resolve into the checkout through a symlink.
+
+Edit payloads are checked against every file they name (hashline `[PATH#TAG]` headers and `MV` destinations, `apply_patch` and `sloppy` file headers, patch-mode renames); one checkout source blocks the whole call. `write xd://<tool>` is checked as a direct call to `<tool>`. Calls with no recognizable target, and other URL schemes, are blocked.
+
+The guard ends when `STATE.md` no longer reports an executing phase at the end of a turn, or when the agent run ends with no native GSD task running and either no task was dispatched during the execution or the last `[checkpoint]` line reported `failed`.
+
 ## Installer CLI configuration
 
 The executable accepts one command followed by common options:

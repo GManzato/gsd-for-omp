@@ -40,7 +40,7 @@ function nativeTaskActivityLines(count, chinese) {
  * Per-instance native task tracker over the shared runtime state: ref-counted task ids, task calls and live execution progress.
  */
 function createNativeTaskTracker({ state }) {
-  const { activeGsdTaskIds, activeGsdTaskIdsByCall, activeGsdTaskRefCounts, nativeTaskExecutionByCall } = state;
+  const { activeGsdTaskIds, activeGsdTaskIdsByCall, activeGsdTaskRefCounts, nativePhaseExecutions, nativeTaskExecutionByCall } = state;
 
   function taskIdsFor(cwd) {
     const projectPath = path.resolve(cwd);
@@ -163,6 +163,8 @@ function createNativeTaskTracker({ state }) {
     if (event?.toolName !== 'task' || typeof event.toolCallId !== 'string' || !event.toolCallId) return;
     const execution = nativeTaskExecutionState(cwd, event, null);
     if (!execution) return;
+    const phaseExecution = nativePhaseExecutions.get(path.resolve(cwd));
+    if (phaseExecution) phaseExecution.dispatched = true;
     trackGsdTaskRequest(event, cwd);
   }
 

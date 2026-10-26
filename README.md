@@ -53,6 +53,7 @@ The `gsd_invoke` tool gives agents structured access to the same `gsd-tools` CLI
 - **Update notice** — in GSD projects, a notification and a `⬆` footer marker appear when a newer `gsd-for-omp` is published; the npm check runs in the background at most once a day. Opt out with `GSD_FOR_OMP_NO_UPDATE_CHECK=1`.
 - **Native controls** — `/gsd-status` accepts `--compact`, `--stop`, `--branch`, `--tree`, `--switch`, and `--reload` for OMP's native session controls.
 - **Goal Mode** — when the host emits `goal_updated`, the objective, status, and token budget are mirrored in `/gsd-status`; pause or drop the goal (`/goal pause`, `/goal drop`) before `/gsd-next`. Hosts without it, such as OMP 17, keep everything else.
+- **Phase execution** — `/gsd-execute-phase` dispatches executors as isolated OMP tasks, so it needs `task.isolation.enabled: true` with plan mode off (`--interactive` runs inline without it). When the setting is not configured anywhere, it is turned on for the session; an explicit `false` is respected. See [Configuration](docs/CONFIGURATION.md#phase-execution-and-task-isolation).
 - **Models** — OMP owns the model. Switch with OMP's `/model`; the GSD `model_profile` setting has no effect under OMP. See [Configuration](docs/CONFIGURATION.md#model-routing).
 
 ## Update and uninstall

@@ -4,6 +4,16 @@ All notable changes to `gsd-for-omp` are recorded here in [Keep a Changelog](htt
 
 ## [Unreleased]
 
+### Added
+
+- `/gsd-execute-phase` checks that OMP will offer isolated tasks before the run starts. Without `--interactive`, it stops with a message when `task.isolation.enabled` is off or plan mode hides the task `isolated` option, instead of failing at the first executor dispatch after state reads and config writes. When nothing configures `task.isolation.enabled` (no user, project, env or protocol-host value), it is turned on for the current session only and a notification says so; `config.yml` is not touched. OMP 17 does not expose tool schemas to extensions, so it starts the run unchecked as before. The generated `extensions/gsd-for-omp.ts` wrapper now passes OMP's settings registry to the extension, so run `gsd-for-omp install` after updating.
+
+### Fixed
+
+- The native phase execution guard no longer blocks writes that cannot touch the parent checkout: OMP settings and session URLs (`cfg://`, `local://`, `agent://`, `proc://`, `artifact://`, `skill://`, `omp://`, `history://`), `~/` paths, and files outside the Git checkout, such as `~/.omp/agent/config.yml` or another repository. Hashline, `apply_patch` and `sloppy` edits are now checked against the files named in their payload, including move destinations, so `.planning/` edits pass and any source target blocks the call; previously every edit without a `path` field was blocked. `write xd://<tool>` is checked as a call to `<tool>`, so `xd://gsd_invoke` passes and `xd://ast_edit` on source files still blocks. Unknown targets, unknown URL schemes, and outside paths that resolve into the checkout through a symlink stay blocked.
+- The phase execution guard is released when the agent run ends with no native GSD task running and either no task was ever dispatched or the last `[checkpoint]` line reported `failed`. Before, a stale `status: executing` in `STATE.md` kept the guard on for the rest of the session after a run stopped early.
+- Projected `gsd-executor` agents create a per-agent `agent-phase{PHASE}-plan{PLAN}` branch before their first commit when HEAD is detached. OMP isolated workspaces start with a detached HEAD, which made the executor's commit safety check refuse every task commit. OMP captures the commits from HEAD in both patch and branch merge modes, and the branch never leaves the isolated workspace.
+
 ## [1.1.2] - 2026-10-21
 
 ### Added
