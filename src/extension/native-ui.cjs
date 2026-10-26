@@ -45,7 +45,7 @@ const nativeMessageTypes = new Set([
   'gsd-continuation', 'gsd-continuation-deferred', 'gsd-continuation-dismissed',
   'gsd-continuation-error', 'gsd-continuation-preview', 'gsd-native-continuation',
   'gsd-native-skill-command', 'gsd-native-tasks-active', 'gsd-native-abort', 'gsd-native-compact', 'gsd-native-session', 'gsd-goal-mode-active', 'gsd-projected-skill-input-error', 'gsd-ship-ready', 'gsd-resume-ready',
-  'gsd-workflow-advisory', 'gsd-hook-advisory',
+  'gsd-workflow-advisory', 'gsd-hook-advisory', 'gsd-execute-isolation-required',
 ]);
 
 for (const name of nativeMessageWorkflowNames) {

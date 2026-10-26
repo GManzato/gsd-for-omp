@@ -38,9 +38,11 @@ function registerLifecycleHandlers({
   preToolHookOutcome,
   queueHookAdvisories,
   reconcileTaskSettlement,
+  recordNativePhaseCheckpoint,
   releaseFailedGsdTaskRequest,
   releaseInactiveNativePhase,
   releaseSettledGsdTasks,
+  releaseStoppedNativePhase,
   rememberGoalModeState,
   scheduleOnboardingPrompt,
   setNativeRuntimeSignal,
@@ -158,12 +160,21 @@ function registerLifecycleHandlers({
     updateStatus(ctx);
   });
 
+  // turn_end fires after every model turn, including the ones before the first dispatch;
+  // agent_end marks the run handing control back to the user.
+  pi.on('agent_end', async (_event, ctx) => {
+    if (!isGsdProject(ctx.cwd)) return;
+    releaseStoppedNativePhase(ctx.cwd);
+    updateStatus(ctx);
+  });
+
   pi.on('message_end', async (event, ctx) => {
     if (!isGsdProject(ctx.cwd)) return;
     const output = assistantMessageText(event?.message);
     const checkpoint = extractCheckpoint(output);
     const nextAction = extractNextAction(output);
     if (checkpoint) persistCheckpoint(ctx.cwd, checkpoint);
+    recordNativePhaseCheckpoint(ctx.cwd, output);
     if (nextAction) persistNextAction(ctx.cwd, nextAction);
     if (checkpoint || nextAction) updateStatus(ctx);
     if (nextAction && ctx.hasUI) await choosePendingContinuation(ctx, nextAction);

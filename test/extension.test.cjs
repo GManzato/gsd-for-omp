@@ -1016,6 +1016,192 @@ test('blocks phase writes through symlinked planning paths and empty LSP edits',
   }
 });
 
+function hashlineEdit(...targets) {
+  return { toolName: 'edit', input: { i: 'edit', input: targets.map((target) => `[${target}#ABCD]\nPUT 1.=1:\n+x`).join('\n') } };
+}
+
+test('phase guard blocks only parent-checkout sources outside the planning directory', async () => {
+  const root = gsdProjectRoot();
+  const otherRepo = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-guard-other-'));
+  try {
+    fs.mkdirSync(path.join(root, 'src'));
+    fs.symlinkSync(path.join(root, 'src'), path.join(otherRepo, 'into-checkout'), 'dir');
+    const pi = mockPi();
+    extension(pi, { runtime: 'omp', runtimeRoot: root });
+    const ctx = { cwd: root };
+    await pi.commands.get('gsd-execute-phase').handler('1', ctx);
+    const write = (input) => ({ toolName: 'write', input });
+    const cases = [
+      ['settings URL', write({ path: 'cfg://task/isolation.enabled', content: 'true' }), false],
+      ['home config', write({ path: '~/.omp/agent/config.yml', content: '' }), false],
+      ['other repository', write({ path: path.join(otherRepo, 'x.js'), content: '' }), false],
+      ['symlink into the checkout', write({ path: path.join(otherRepo, 'into-checkout', 'x.js'), content: '' }), true],
+      ['home-relative path stays outside the checkout', write({ path: '~/x.js', content: '' }), false],
+      ['GSD tool device', write({ path: 'xd://gsd_invoke', content: '{"family":"progress"}' }), false],
+      ['ast_edit device on a source file', write({ path: 'xd://ast_edit', content: '{"paths":["src/a.ts"]}' }), true],
+      ['unknown URL scheme', write({ path: 'ssh://host/src/a.ts', content: '' }), true],
+      ['empty path', write({ path: '', content: '' }), true],
+      ['missing path', write({ content: '' }), true],
+      ['hashline planning edit', hashlineEdit('.planning/STATE.md'), false],
+      ['hashline source edit', hashlineEdit('src/main.rs'), true],
+      ['hashline mixed edit', hashlineEdit('src/a.rs', '.planning/x.md'), true],
+      ['hashline payload without a target', { toolName: 'edit', input: { input: 'PUT 1.=1:\n+x' } }, true],
+      ['apply_patch move out of planning', { toolName: 'edit', input: { input: '*** Begin Patch\n*** Update File: .planning/x.md\n*** Move to: src/x.md\n*** End Patch' } }, true],
+      ['sloppy planning edit', { toolName: 'edit', input: { input: '*** Edit File: .planning/STATE.md\n*** Find\nold\n*** Replace\nnew' } }, false],
+      ['legacy hashline header', { toolName: 'edit', input: { input: '¶src/main.rs#ABCD\nPUT 1.=1:\n+x' } }, true],
+      ['hashline move out of planning', { toolName: 'edit', input: { input: '[.planning/x.md#ABCD]\nMV src/x.md' } }, true],
+      ['patch-mode rename into source', { toolName: 'edit', input: { path: '.planning/x.md', edits: [{ rename: 'src/x.md' }] } }, true],
+    ];
+    for (const [label, event, blocked] of cases) {
+      const result = await pi.events.get('tool_call')(event, ctx);
+      assert.equal(result?.block === true, blocked, label);
+    }
+
+    const interactive = mockPi();
+    extension(interactive, { runtime: 'omp', runtimeRoot: root });
+    await interactive.commands.get('gsd-execute-phase').handler('1 --interactive', ctx);
+    for (const [label, event] of cases) {
+      const result = await interactive.events.get('tool_call')(event, ctx);
+      assert.notEqual(result?.block, true, `interactive: ${label}`);
+    }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(otherRepo, { recursive: true, force: true });
+  }
+});
+
+// A task tool whose schema follows a live `task.isolation.enabled` value, like OMP's.
+function isolationHost({ provenance, value, planMode = false }) {
+  const setting = { value, provenance, overrides: 0, cleared: 0 };
+  const handle = {
+    get: () => setting.value,
+    provenance: () => setting.provenance,
+    override: (_scope, next) => { setting.value = next; setting.provenance = 'runtime'; setting.overrides += 1; },
+    clearOverride: () => { setting.value = value; setting.provenance = provenance; setting.cleared += 1; },
+  };
+  const taskSchema = () => ({
+    type: 'object',
+    properties: {
+      context: { type: 'string' },
+      tasks: { type: 'array', items: { type: 'object', properties: setting.value && !planMode ? { task: {}, isolated: { type: 'boolean' } } : { task: {} } } },
+    },
+  });
+  const pi = mockPi();
+  pi.pi.settings = {};
+  pi.getAllTools = () => [{ name: 'read', parameters: {} }, { name: 'task', parameters: { toJsonSchema: taskSchema } }];
+  const registry = { lookup: (id) => (id === 'task.isolation.enabled' ? handle : undefined) };
+  return { pi, registry, setting };
+}
+
+test('execute-phase refuses to start when OMP will not offer isolated tasks', async () => {
+  const root = gsdProjectRoot();
+  try {
+    for (const [label, options, reason] of [
+      ['explicit false', { provenance: 'global', value: false }, /omp config set task\.isolation\.enabled true/],
+      ['protocol host default', { provenance: 'runtime', value: false }, /omp config set task\.isolation\.enabled true/],
+      ['plan mode', { provenance: 'global', value: true, planMode: true }, /plan mode/],
+    ]) {
+      const { pi, registry, setting } = isolationHost(options);
+      const sent = [];
+      pi.sendMessage = async (message, delivery) => { sent.push({ message, delivery }); };
+      extension(pi, { runtime: 'omp', runtimeRoot: root, settingsRegistry: registry });
+      const ctx = { cwd: root };
+      await pi.commands.get('gsd-execute-phase').handler('1', ctx);
+      assert.deepEqual(sent.map(({ message }) => message.customType), ['gsd-execute-isolation-required'], label);
+      assert.match(sent[0].message.content, reason, label);
+      assert.equal(sent[0].delivery.triggerTurn, false, label);
+      assert.equal(setting.overrides, 0, `${label}: configured values are respected`);
+      const sourceWrite = await pi.events.get('tool_call')({ toolName: 'write', input: { path: 'src/a.ts' } }, ctx);
+      assert.notEqual(sourceWrite?.block, true, `${label}: no guard without a run`);
+    }
+
+    const { pi } = isolationHost({ provenance: 'global', value: false });
+    const sent = [];
+    pi.sendMessage = async (message) => { sent.push(message); };
+    extension(pi, { runtime: 'omp', runtimeRoot: root });
+    await pi.commands.get('gsd-execute-phase').handler('1 --interactive', { cwd: root });
+    assert.equal(sent[0].customType, 'gsd-native-execute-phase', '--interactive needs no isolation');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('execute-phase enables isolation for the session only when nothing configures it', async () => {
+  const root = gsdProjectRoot();
+  try {
+    const { pi, registry, setting } = isolationHost({ provenance: 'default', value: false });
+    const sent = [];
+    const notices = [];
+    pi.sendMessage = async (message) => { sent.push(message); };
+    extension(pi, { runtime: 'omp', runtimeRoot: root, settingsRegistry: registry });
+    await pi.commands.get('gsd-execute-phase').handler('1', { cwd: root, ui: { notify: (text) => notices.push(text) } });
+    assert.equal(setting.overrides, 1);
+    assert.equal(setting.value, true);
+    assert.equal(sent[0].customType, 'gsd-native-execute-phase');
+    assert.match(notices.join('\n'), /Enabled OMP task isolation for this session/);
+
+    const planMode = isolationHost({ provenance: 'default', value: false, planMode: true });
+    const planSent = [];
+    planMode.pi.sendMessage = async (message) => { planSent.push(message); };
+    extension(planMode.pi, { runtime: 'omp', runtimeRoot: root, settingsRegistry: planMode.registry });
+    await planMode.pi.commands.get('gsd-execute-phase').handler('1', { cwd: root });
+    assert.equal(planSent[0].customType, 'gsd-execute-isolation-required');
+    assert.equal(planMode.setting.cleared, 1, 'an override that cannot help is withdrawn');
+    assert.equal(planMode.setting.value, false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('phase guard releases at agent end when the run never dispatched or its last plan failed', async () => {
+  const root = gsdProjectRoot();
+  try {
+    fs.writeFileSync(path.join(root, '.planning', 'STATE.md'), '---\nstatus: executing\n---\n# State\n');
+    const sourceWrite = { toolName: 'write', input: { path: 'src/a.ts' } };
+    const assistant = (text) => ({ message: { role: 'assistant', content: [{ type: 'text', text }] } });
+    const start = (callId, name) => ({
+      type: 'tool_execution_start', toolName: 'task', toolCallId: callId,
+      args: { context: 'phase execution', tasks: [{ name, agent: 'gsd-executor', task: 'do work' }] },
+    });
+    const end = (callId, name) => ({
+      type: 'tool_execution_end', toolName: 'task', toolCallId: callId, isError: false,
+      result: { content: [], details: { results: [{ id: name, agent: 'gsd-executor', exitCode: 0, output: '' }] } },
+    });
+    const ctx = { cwd: root };
+    const run = async () => {
+      const pi = mockPi();
+      extension(pi, { runtime: 'omp', runtimeRoot: root });
+      await pi.commands.get('gsd-execute-phase').handler('1', ctx);
+      const blocked = async () => (await pi.events.get('tool_call')(sourceWrite, ctx))?.block === true;
+      return { pi, blocked };
+    };
+
+    const stopped = await run();
+    await stopped.pi.events.get('turn_end')({}, ctx);
+    assert.equal(await stopped.blocked(), true, 'a turn before the first dispatch keeps the guard');
+    await stopped.pi.events.get('agent_end')({}, ctx);
+    assert.equal(await stopped.blocked(), false, 'a run that never dispatched releases the guard');
+
+    const running = await run();
+    await running.pi.events.get('tool_execution_start')(start('call_run', 'Phase1Plan01Executor'), ctx);
+    await running.pi.events.get('message_end')(assistant('[checkpoint] phase 1 wave 1/2 plan 01-01 failed (0/2 plans done)'), ctx);
+    await running.pi.events.get('agent_end')({}, ctx);
+    assert.equal(await running.blocked(), true, 'a native task still running keeps the guard');
+    await running.pi.events.get('tool_execution_end')(end('call_run', 'Phase1Plan01Executor'), ctx);
+    await running.pi.events.get('agent_end')({}, ctx);
+    assert.equal(await running.blocked(), false, 'a failed last plan releases the guard once tasks settle');
+
+    const completed = await run();
+    await completed.pi.events.get('tool_execution_start')(start('call_done', 'Phase1Plan01Executor'), ctx);
+    await completed.pi.events.get('tool_execution_end')(end('call_done', 'Phase1Plan01Executor'), ctx);
+    await completed.pi.events.get('message_end')(assistant('[checkpoint] phase 1 wave 1/2 plan 01-01 complete (1/2 plans done)'), ctx);
+    await completed.pi.events.get('agent_end')({}, ctx);
+    assert.equal(await completed.blocked(), true, 'an executing run paused after a completed plan keeps the guard');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('execute-phase contract asks for native todo tracking instead of forbidding it', async () => {
   const root = gsdProjectRoot();
   try {

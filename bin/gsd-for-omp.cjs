@@ -320,9 +320,27 @@ function assertSupportedCore(coreRoot) {
   return corePackage.version;
 }
 
+// The settings registry subpath only resolves inside the OMP extension graph,
+// so the wrapper imports it and hands it to the CommonJS extension. Hosts
+// without the registry (OMP before 18.3) load the extension without it.
 function extensionWrapper(root) {
   const extensionPath = path.join(__dirname, '..', 'src', 'extension.cjs');
-  return `import { createRequire } from "node:module";\n\nconst require = createRequire(import.meta.url);\nconst extension = require(${JSON.stringify(extensionPath)});\n\nexport default (pi: unknown) => extension(pi, { runtime: "omp", runtimeRoot: ${JSON.stringify(root)} });\n`;
+  return [
+    'import { createRequire } from "node:module";',
+    '',
+    'const require = createRequire(import.meta.url);',
+    `const extension = require(${JSON.stringify(extensionPath)});`,
+    '',
+    'let settingsRegistry: unknown;',
+    'try {',
+    '  settingsRegistry = await import("@oh-my-pi/pi-coding-agent/config/registry");',
+    '} catch {',
+    '  settingsRegistry = undefined;',
+    '}',
+    '',
+    `export default (pi: unknown) => extension(pi, { runtime: "omp", runtimeRoot: ${JSON.stringify(root)}, settingsRegistry });`,
+    '',
+  ].join('\n');
 }
 
 function desiredArtifacts(root, coreRoot) {

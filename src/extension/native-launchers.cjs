@@ -54,6 +54,7 @@ const {
 const { prioritizeRecentPhase, rememberRecentPhase } = require('./planning-store.cjs');
 const { isGsdProject } = require('./planning.cjs');
 const { parseCommandLine } = require('./util.cjs');
+const { ensureTaskIsolation, taskIsolationMessage } = require('./task-isolation.cjs');
 
 /**
  * Native workflow launchers bound to the host API and runtime paths.
@@ -127,16 +128,37 @@ function createNativeLaunchers({ pi, options, agentsDir, cliPath, state }) {
       });
     }
     const phase = parseCommandLine(input)[0];
+    const interactive = parseCommandLine(input).includes('--interactive');
+    if (!interactive && !(await requireTaskIsolation(ctx))) return;
     rememberRecentPhase(ctx.cwd, 'execute', phase);
     await nameNativePhaseSession(ctx, phase, 'execute');
     const projectPath = path.resolve(ctx.cwd);
-    nativePhaseExecutions.set(projectPath, { interactive: parseCommandLine(input).includes('--interactive') });
+    nativePhaseExecutions.set(projectPath, { interactive, dispatched: false });
     try {
       await pi.sendMessage({ customType: 'gsd-native-execute-phase', content: prompt, display: true }, { triggerTurn: true });
     } catch (error) {
       nativePhaseExecutions.delete(projectPath);
       throw error;
     }
+  }
+
+  // Non-interactive execution dispatches every executor as an isolated native task; refuse
+  // before the run starts writing state rather than after the first dispatch fails.
+  async function requireTaskIsolation(ctx) {
+    const chinese = usesChinese(ctx.cwd);
+    const isolation = ensureTaskIsolation(pi, options.settingsRegistry);
+    if (isolation.enabled && typeof ctx.ui?.notify === 'function') {
+      ctx.ui.notify(chinese
+        ? '已为本会话启用 OMP 任务隔离（task.isolation.enabled 未配置）。'
+        : 'Enabled OMP task isolation for this session (task.isolation.enabled was not configured).', 'info');
+    }
+    if (isolation.available) return true;
+    await pi.sendMessage({
+      customType: 'gsd-execute-isolation-required',
+      content: taskIsolationMessage(isolation.reason, chinese),
+      display: true,
+    }, { triggerTurn: false });
+    return false;
   }
 
   async function chooseExecutionPhase(ctx) {

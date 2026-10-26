@@ -24,6 +24,16 @@ End the final report with exactly one lifecycle line, then follow OMP's terminal
 \`\`\`
 
 Use \`failed\` or \`cancelled\` instead of \`completed\` when the plan did not complete.
+
+## OMP isolated workspace branch
+
+An OMP isolated task workspace is a private copy of the repository whose HEAD starts detached at the parent's commit, so the task commit protocol's HEAD safety assertion refuses to commit there. Before your first task commit, if \`git symbolic-ref --quiet HEAD\` fails, create a per-agent branch at that commit and keep committing on it:
+
+\`\`\`bash
+git switch -c "agent-phase{PHASE}-plan{PLAN}"
+\`\`\`
+
+The branch exists only inside the isolated workspace, and OMP captures your commits from HEAD whatever the branch is called (as a patch, or replayed onto \`omp/task/<id>\` in branch mode). If HEAD is already on a branch, leave it there.
 `;
 
 const EXECUTE_PHASE_SKILL = 'gsd-execute-phase';
