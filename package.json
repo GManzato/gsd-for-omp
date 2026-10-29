@@ -1,6 +1,6 @@
 {
   "name": "gsd-for-omp",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "description": "Oh My Pi host plugin for the GSD Embeddable Orchestration System — extension bindings, slash-command surface, Host-Integration SDK adapter, and optional Goal Mode status integration for AI coding agents",
   "license": "MIT",
   "author": "Gilles Manzato",
