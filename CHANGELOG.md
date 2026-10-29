@@ -4,6 +4,14 @@ All notable changes to `gsd-for-omp` are recorded here in [Keep a Changelog](htt
 
 ## [Unreleased]
 
+### Changed
+
+- Updated the bundled `@opengsd/gsd-core` dependency to `^1.19.0`. Run `gsd-for-omp install` after updating to refresh the projected agents and skills.
+
+### Security
+
+- Refreshed transitive dependencies to clear open advisories: `body-parser` 2.4.0, `fast-uri` 3.1.9 and `zod` 4.6.7.
+
 ## [1.1.3] - 2026-10-26
 
 ### Added
