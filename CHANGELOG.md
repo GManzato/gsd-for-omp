@@ -4,6 +4,8 @@ All notable changes to `gsd-for-omp` are recorded here in [Keep a Changelog](htt
 
 ## [Unreleased]
 
+## [1.1.5] - 2026-11-05
+
 ### Changed
 
 - Updated the bundled `@opengsd/gsd-core` dependency to `^1.20.0`. Run `gsd-for-omp install` after updating to refresh the projected agents and skills.
@@ -122,7 +124,8 @@ Related: [PR #53](https://github.com/tchivs/gsd-omp/pull/53), [release PR #54](h
 
 Related: [PR #51](https://github.com/tchivs/gsd-omp/pull/51), [release PR #52](https://github.com/tchivs/gsd-omp/pull/52).
 
-[Unreleased]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.4...HEAD
+[Unreleased]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.5...HEAD
+[1.1.5]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.1...v1.1.2
