@@ -2,12 +2,22 @@
 
 /**
  * First-run language and interaction-style prompt persisted to .planning/config.json.
+ *
+ * The chosen `response_language` (and an explicit `workflow.text_mode`) is also
+ * remembered per project config path in the runtime root, outside the project
+ * checkout. When something rewrites or resets `.planning/config.json` (a git
+ * checkout, stash, pull or branch switch dropping an uncommitted edit), the next
+ * session restores the remembered values instead of asking again.
  */
 
+const fs = require('node:fs');
 const path = require('node:path');
+const { usesChinese } = require('./localize.cjs');
 const { nativeSelect } = require('./native-ui.cjs');
 const { isGsdProject, planningFilePath, readProjectConfig } = require('./planning.cjs');
 const { writeJsonAtomically } = require('./util.cjs');
+
+const PROJECT_PREFERENCES_FILE = '.gsd-for-omp-project-preferences.json';
 
 function hasExplicitTextMode(config) {
   return Object.prototype.hasOwnProperty.call(config?.workflow || {}, 'text_mode');
@@ -17,6 +27,57 @@ function persistOnboarding(cwd, config, language, textMode) {
   const nextConfig = { ...config, response_language: language };
   if (textMode !== undefined) nextConfig.workflow = { ...(config.workflow || {}), text_mode: textMode };
   return writeJsonAtomically(planningFilePath(cwd, 'config'), nextConfig);
+}
+
+function rememberedProjects(preferencesPath) {
+  try {
+    const projects = JSON.parse(fs.readFileSync(preferencesPath, 'utf8'))?.projects;
+    return projects && typeof projects === 'object' && !Array.isArray(projects) ? projects : {};
+  } catch {
+    return {};
+  }
+}
+
+function projectPreferences(config) {
+  const language = config.response_language;
+  if (typeof language !== 'string' || !language.trim()) return null;
+  const textMode = config.workflow?.text_mode;
+  return typeof textMode === 'boolean' ? { response_language: language, text_mode: textMode } : { response_language: language };
+}
+
+function rememberedPreferences(projects, configPath) {
+  if (!Object.hasOwn(projects, configPath)) return null;
+  const entry = projects[configPath];
+  return entry && typeof entry === 'object' ? projectPreferences({ response_language: entry.response_language, workflow: { text_mode: entry.text_mode } }) : null;
+}
+
+/**
+ * Remember the project's configured language, or restore the remembered one when
+ * the config has lost it. Returns true when the project config was rewritten.
+ */
+function syncProjectPreferences(ctx, preferencesPath) {
+  const config = readProjectConfig(ctx.cwd);
+  if (!config || typeof config !== 'object' || Array.isArray(config)) return false;
+  const configPath = path.resolve(planningFilePath(ctx.cwd, 'config'));
+  const projects = rememberedProjects(preferencesPath);
+  const current = projectPreferences(config);
+  if (current) {
+    const remembered = rememberedPreferences(projects, configPath);
+    if (remembered?.response_language !== current.response_language || remembered?.text_mode !== current.text_mode) {
+      writeJsonAtomically(preferencesPath, { projects: { ...projects, [configPath]: current } });
+    }
+    return false;
+  }
+  const remembered = rememberedPreferences(projects, configPath);
+  if (!remembered) return false;
+  const textMode = hasExplicitTextMode(config) ? undefined : remembered.text_mode;
+  if (!persistOnboarding(ctx.cwd, config, remembered.response_language, textMode)) return false;
+  if (ctx.hasUI) {
+    ctx.ui?.notify?.(usesChinese(ctx.cwd)
+      ? `已恢复 GSD 界面语言：${remembered.response_language}`
+      : `Restored GSD language: ${remembered.response_language}`, 'info');
+  }
+  return true;
 }
 
 async function promptForOnboarding(ctx) {
@@ -58,17 +119,24 @@ async function promptForOnboarding(ctx) {
 }
 
 /**
- * Schedules the onboarding prompt once per project (`state.onboardingPromptCwds`).
+ * Restores or remembers the project language, then schedules the onboarding
+ * prompt once per project (`state.onboardingPromptCwds`) when none is known.
  */
-function createOnboarding({ state, updateStatus }) {
+function createOnboarding({ state, updateStatus, runtimeRoot }) {
   const { onboardingPromptCwds } = state;
+  const preferencesPath = path.join(runtimeRoot, PROJECT_PREFERENCES_FILE);
 
   function scheduleOnboardingPrompt(ctx) {
     const projectPath = path.resolve(ctx.cwd);
     if (onboardingPromptCwds.has(projectPath)) return;
+    if (syncProjectPreferences(ctx, preferencesPath)) return;
     onboardingPromptCwds.add(projectPath);
     void promptForOnboarding(ctx)
-      .then((changed) => { if (changed) updateStatus(ctx); })
+      .then((changed) => {
+        if (!changed) return;
+        syncProjectPreferences(ctx, preferencesPath);
+        updateStatus(ctx);
+      })
       .catch(() => {})
       .finally(() => onboardingPromptCwds.delete(projectPath));
   }

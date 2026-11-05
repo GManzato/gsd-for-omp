@@ -134,7 +134,7 @@ The extension also invokes selected GSD hook scripts on `tool_call` (`Write`/`Ed
 
 Lifecycle event handling is project-scoped (the extension first checks whether the current directory has a recognizable planning workspace):
 
-- `session_start` schedules one-time onboarding when `response_language` is absent, refreshes status, optionally opens the `--gsd-status` overlay, and shows a workflow-guard reminder.
+- `session_start` restores a remembered `response_language` when the project config has lost it, otherwise schedules one-time onboarding when `response_language` is absent; it then refreshes status, optionally opens the `--gsd-status` overlay, and shows a workflow-guard reminder.
 - `session_switch`, `session_branch`, `session_tree`, and `session_compact` refresh status and clear context-local Goal Mode state where appropriate.
 - `auto_compaction_start/end`, `auto_retry_start/end`, and `session_stop` expose transient native runtime signals in status.
 - `message_end` extracts pending next-action/checkpoint records from assistant text and persists them in the planning workspace.
@@ -156,7 +156,7 @@ When a goal is active (`enabled === true` and goal status `active`), the extensi
 
 `src/locale.cjs` handles messages emitted by the shell CLI and EoS bootstrap. It resolves the first non-empty value in this order: `GSD_FOR_OMP_LOCALE`, `LC_ALL`, `LC_MESSAGES`, `LANG`. Values whose lowercased form starts with `zh` select `zh-CN`; all other values select `en`. Missing dictionary keys fall back to English, and unknown placeholders remain unchanged.
 
-The in-session extension uses the project planning config's `response_language` instead. On the first interactive session for a project without that field, onboarding offers Simplified Chinese or English and writes the selected value to `.planning/config.json`; the optional interaction-style selection can also write `workflow.text_mode`. This separation prevents a shell locale from unexpectedly changing an already configured project session.
+The in-session extension uses the project planning config's `response_language` instead. On the first interactive session for a project without that field, onboarding offers Simplified Chinese or English and writes the selected value to `.planning/config.json`; the optional interaction-style selection can also write `workflow.text_mode`. The extension also keeps a per-project copy of both values in `<runtime-root>/.gsd-for-omp-project-preferences.json` and writes them back when the config loses `response_language`, so a reset of an uncommitted config edit does not reopen the picker. This separation prevents a shell locale from unexpectedly changing an already configured project session.
 
 ## Tests and host-smoke boundary
 
