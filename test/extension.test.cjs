@@ -1454,3 +1454,54 @@ test('cancels a pending update lookup on session shutdown', async () => {
     fixture.cleanup();
   }
 });
+
+test('restores the remembered project language after the config loses it', async () => {
+  const project = gsdProjectRoot();
+  const runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-for-omp-language-runtime-'));
+  const configPath = path.join(project, '.planning', 'config.json');
+  const readConfig = () => JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  async function sessionStart(answers) {
+    const asked = [];
+    const notices = [];
+    const pi = mockPi();
+    extension(pi, { runtime: 'omp', runtimeRoot });
+    const ctx = {
+      cwd: project,
+      hasUI: true,
+      ui: {
+        select: async (title) => { asked.push(title); return answers.shift(); },
+        notify(message) { notices.push(message); },
+        setWidget() {},
+        setStatus() {},
+      },
+    };
+    await pi.events.get('session_start')({}, ctx);
+    for (let turn = 0; turn < 10; turn += 1) await new Promise((resolve) => setImmediate(resolve));
+    return { asked, notices };
+  }
+  try {
+    fs.writeFileSync(configPath, JSON.stringify({ mode: 'yolo' }));
+    const first = await sessionStart(['简体中文', '终端文本式']);
+    assert.equal(first.asked.length, 2);
+    assert.deepEqual(readConfig(), { mode: 'yolo', response_language: 'Simplified Chinese', workflow: { text_mode: true } });
+
+    // A git checkout or pull resets the uncommitted config edit.
+    fs.writeFileSync(configPath, JSON.stringify({ mode: 'yolo' }));
+    const restored = await sessionStart([]);
+    assert.deepEqual(restored.asked, []);
+    assert.deepEqual(readConfig(), { mode: 'yolo', response_language: 'Simplified Chinese', workflow: { text_mode: true } });
+    assert.deepEqual(restored.notices, ['已恢复 GSD 界面语言：Simplified Chinese']);
+
+    // A language changed in the config is remembered; an explicit text_mode in the config wins.
+    fs.writeFileSync(configPath, JSON.stringify({ mode: 'yolo', response_language: 'English', workflow: { text_mode: true } }));
+    assert.deepEqual((await sessionStart([])).asked, []);
+    fs.writeFileSync(configPath, JSON.stringify({ mode: 'yolo', workflow: { text_mode: false } }));
+    const changed = await sessionStart([]);
+    assert.deepEqual(changed.asked, []);
+    assert.deepEqual(readConfig(), { mode: 'yolo', response_language: 'English', workflow: { text_mode: false } });
+    assert.deepEqual(changed.notices, ['Restored GSD language: English']);
+  } finally {
+    fs.rmSync(project, { recursive: true, force: true });
+    fs.rmSync(runtimeRoot, { recursive: true, force: true });
+  }
+});

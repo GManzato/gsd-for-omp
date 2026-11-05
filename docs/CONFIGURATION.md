@@ -27,6 +27,7 @@ The path is resolved to an absolute path. A normal installed layout is:
 ```text
 <runtime-root>/
 ├── .gsd-for-omp-manifest.json
+├── .gsd-for-omp-project-preferences.json   (written by the extension, not the installer)
 ├── extensions/gsd-for-omp.ts
 ├── agents/gsd-*.md
 └── skills/gsd-*/SKILL.md
@@ -96,6 +97,8 @@ A minimal project-language example is:
 ```
 
 To select Simplified Chinese explicitly, use `"response_language": "Simplified Chinese"`. The first interactive `session_start` for a GSD project with no `response_language` offers `Simplified Chinese` or `English`; it can also ask for interaction style if `workflow.text_mode` is not already explicit. Projects without an interactive UI do not receive that picker.
+
+The extension remembers each project's `response_language` and explicit boolean `workflow.text_mode` in `<runtime-root>/.gsd-for-omp-project-preferences.json`, keyed by the absolute config path, and refreshes that record whenever a session starts with a language set. If `.planning/config.json` later loses `response_language` (for example a `git checkout`, stash, pull or branch switch discards the uncommitted edit), the next session writes the remembered values back without asking again and shows `Restored GSD language: <language>`. A `workflow.text_mode` already present in the config is kept. Commit `.planning/config.json` to share the setting with other clones; delete the project's entry from the preferences file to be asked again.
 
 ## Phase execution and task isolation
 
