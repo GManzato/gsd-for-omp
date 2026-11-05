@@ -61,7 +61,7 @@ module.exports = function gsdPiExtension(pi, options = {}) {
   const status = createStatusSurface({ state, ...goalMode, ...taskTracker, updateNotice: updateCheck.updateNotice });
   const nativeUi = createNativeUi({ pi, ...status });
   const sessionControls = createSessionControls({ pi, ...goalMode, ...taskTracker, ...status });
-  const onboarding = createOnboarding({ state, ...status });
+  const onboarding = createOnboarding({ state, runtimeRoot, ...status });
   const launchers = createNativeLaunchers({ pi, options, agentsDir, cliPath, state });
   const continuation = createContinuation({ pi, ...goalMode, ...taskTracker, ...status, ...launchers });
   const projectedSkills = createProjectedSkills({ pi, runtimeRoot, ...launchers });
