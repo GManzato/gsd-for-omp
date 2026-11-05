@@ -4,6 +4,10 @@ All notable changes to `gsd-for-omp` are recorded here in [Keep a Changelog](htt
 
 ## [Unreleased]
 
+### Changed
+
+- Updated the bundled `@opengsd/gsd-core` dependency to `^1.20.0`. Run `gsd-for-omp install` after updating to refresh the projected agents and skills.
+
 ## [1.1.4] - 2026-10-29
 
 ### Changed
