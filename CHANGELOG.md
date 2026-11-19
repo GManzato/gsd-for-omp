@@ -4,6 +4,8 @@ All notable changes to `gsd-for-omp` are recorded here in [Keep a Changelog](htt
 
 ## [Unreleased]
 
+## [1.1.6] - 2026-11-19
+
 ### Fixed
 
 - The GSD language picker no longer comes back for a project that was already set up. The language chosen in OMP (and an explicit interaction style) is remembered per project in `<runtime-root>/.gsd-for-omp-project-preferences.json`. When `.planning/config.json` loses `response_language`, for example because a `git checkout`, stash, pull or branch switch dropped the uncommitted edit, the next session writes it back and shows `Restored GSD language: <language>` instead of asking again.
@@ -128,7 +130,8 @@ Related: [PR #53](https://github.com/tchivs/gsd-omp/pull/53), [release PR #54](h
 
 Related: [PR #51](https://github.com/tchivs/gsd-omp/pull/51), [release PR #52](https://github.com/tchivs/gsd-omp/pull/52).
 
-[Unreleased]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.5...HEAD
+[Unreleased]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.6...HEAD
+[1.1.6]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.5...v1.1.6
 [1.1.5]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/GManzato/gsd-for-omp/compare/v1.1.2...v1.1.3
