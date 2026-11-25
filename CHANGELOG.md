@@ -4,6 +4,14 @@ All notable changes to `gsd-for-omp` are recorded here in [Keep a Changelog](htt
 
 ## [Unreleased]
 
+### Changed
+
+- Updated the bundled `@opengsd/gsd-core` dependency to `^1.23.0`. Run `gsd-for-omp install` after updating to refresh the projected agents and skills.
+
+### Security
+
+- Refreshed the lockfile to clear moderate transitive `hono` and `@hono/node-server` advisories.
+
 ## [1.1.6] - 2026-11-19
 
 ### Fixed
